@@ -14,12 +14,12 @@ interface Campaign {
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    running:'badge-green', completed:'badge-blue',
-    scheduled:'badge-amber', failed:'badge-red', draft:'badge-amber',
+    running: 'badge-green', completed: 'badge-blue',
+    scheduled: 'badge-amber', failed: 'badge-red', draft: 'badge-amber',
   };
   const labels: Record<string, string> = {
-    running:'Activa', completed:'Completa',
-    scheduled:'Programada', failed:'Fallida', draft:'Borrador',
+    running: 'Activa', completed: 'Completa',
+    scheduled: 'Programada', failed: 'Fallida', draft: 'Borrador',
   };
   return <span className={map[s] || 'badge-amber'}>{labels[s] || s}</span>;
 };
@@ -72,7 +72,7 @@ export default function CampaignsPage() {
                 <tr key={c.id} className="hover:bg-wavo-sidebar transition-colors">
                   <td className="py-3 px-2">
                     <p className="font-medium text-wavo-text">{c.name}</p>
-                    <p className="text-xs text-wavo-muted">{c.template_name || 'Sin template'}</p>
+                    <p className="text-xs text-wavo-muted">{c.templateName || 'Sin template'}</p>
                   </td>
                   <td className="py-3 px-2">{statusBadge(c.status)}</td>
                   <td className="py-3 px-2">
