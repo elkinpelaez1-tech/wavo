@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary:      #1D9E75;
+  --color-primary-dark: #0F6E56;
+  --color-primary-light:#5DCAA5;
+  --color-bg-main:      #FAF7EC;
+  --color-bg-sidebar:   #F5F1DF;
+  --color-bg-card:      #FDFCF5;
+  --color-border:       #EDE8D0;
+  --color-text:         #2c2a1e;
+  --color-muted:        #908c72;
+}
+
+body {
+  background-color: var(--color-bg-main);
+  color: var(--color-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-wavo-green text-white px-4 py-2 rounded-lg text-sm font-medium
+           hover:bg-wavo-deep transition-colors cursor-pointer border-0;
+  }
+  .btn-secondary {
+    @apply bg-transparent text-wavo-text px-4 py-2 rounded-lg text-sm font-medium
+           border border-wavo-border hover:bg-wavo-sidebar transition-colors cursor-pointer;
+  }
+  .card {
+    @apply bg-wavo-card border border-wavo-border rounded-xl p-4;
+  }
+  .metric-card {
+    @apply bg-wavo-sidebar rounded-lg p-4;
+  }
+  .badge-green {
+    @apply bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-amber {
+    @apply bg-amber-100 text-amber-800 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-blue {
+    @apply bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-red {
+    @apply bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .input {
+    @apply w-full border border-wavo-border rounded-lg px-3 py-2 text-sm
+           bg-white focus:outline-none focus:ring-2 focus:ring-wavo-green
+           text-wavo-text placeholder-wavo-muted;
+  }
+  .label {
+    @apply block text-xs font-medium text-wavo-muted mb-1 uppercase tracking-wide;
+  }
+}
