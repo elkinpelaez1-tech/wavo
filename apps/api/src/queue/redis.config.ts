@@ -1,7 +1,12 @@
 import { ConnectionOptions } from 'bullmq';
 
 export const getRedisConnection = (): ConnectionOptions => {
-  const url = process.env.REDIS_URL || 'redis://localhost:6379';
+  const url = process.env.REDIS_URL;
+  
+  if (!url) {
+    // En producción esto lanzará un error claro si falta la configuración
+    throw new Error('REDIS_URL is not defined. Please check your environment variables.');
+  }
   
   try {
     const parsed = new URL(url);
@@ -15,10 +20,7 @@ export const getRedisConnection = (): ConnectionOptions => {
       maxRetriesPerRequest: null,
     };
   } catch (e) {
-    return {
-      host: 'localhost',
-      port: 6379,
-      maxRetriesPerRequest: null,
-    };
+    console.error('Invalid REDIS_URL provided:', url);
+    throw e;
   }
 };

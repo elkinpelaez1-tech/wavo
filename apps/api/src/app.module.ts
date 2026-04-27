@@ -16,8 +16,10 @@ import { getRedisConnection } from './queue/redis.config';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
-    BullModule.forRoot({
-      connection: getRedisConnection(),
+    BullModule.forRootAsync({
+      useFactory: () => ({
+        connection: getRedisConnection(),
+      }),
     }),
     SupabaseModule,
     AuthModule,

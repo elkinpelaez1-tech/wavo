@@ -9,8 +9,10 @@ import { getRedisConnection } from '../queue/redis.config';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRoot({
-      connection: getRedisConnection(),
+    BullModule.forRootAsync({
+      useFactory: () => ({
+        connection: getRedisConnection(),
+      }),
     }),
     BullModule.registerQueue({ name: 'messages' }),
     SupabaseModule,
