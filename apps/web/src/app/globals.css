@@ -33,7 +33,7 @@ body {
     @apply bg-wavo-card border border-wavo-border rounded-xl p-4;
   }
   .metric-card {
-    @apply bg-wavo-sidebar rounded-lg p-4;
+    @apply bg-wavo-card border border-wavo-border rounded-lg p-4;
   }
   .badge-green {
     @apply bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full;

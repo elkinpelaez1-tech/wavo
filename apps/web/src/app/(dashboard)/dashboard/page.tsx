@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import api, { getDashboardMetrics } from '@/lib/api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -38,11 +38,23 @@ const statusBadge = (s: string) => {
 
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    sent_today: 0,
+    delivery_rate: 0,
+    open_rate: 0,
+    optouts_week: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/campaigns').then(({ data }) => {
-      setCampaigns(data.slice(0, 5));
+    getDashboardMetrics().then((data) => {
+      setStats({
+        sent_today: data.sent_today,
+        delivery_rate: data.delivery_rate,
+        open_rate: data.open_rate,
+        optouts_week: data.optouts_week,
+      });
+      setCampaigns(data.campaigns);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -65,14 +77,14 @@ export default function DashboardPage() {
       {/* Métricas */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Enviados hoy', value: '—', sub: 'conecta Meta API' },
-          { label: 'Tasa de entrega', value: '—%', sub: 'sin datos aún' },
-          { label: 'Tasa de apertura', value: '—%', sub: 'sin datos aún' },
-          { label: 'Opt-outs', value: '—', sub: 'esta semana' },
+          { label: 'Enviados hoy', value: stats.sent_today.toString(), sub: 'Actualizado' },
+          { label: 'Tasa de entrega', value: `${stats.delivery_rate}%`, sub: 'Global' },
+          { label: 'Tasa de apertura', value: `${stats.open_rate}%`, sub: 'Global' },
+          { label: 'Opt-outs', value: stats.optouts_week.toString(), sub: 'Esta semana' },
         ].map((m) => (
           <div key={m.label} className="metric-card">
             <p className="text-xs text-wavo-muted mb-1">{m.label}</p>
-            <p className="text-2xl font-medium text-wavo-text">{m.value}</p>
+            <p className="text-2xl font-medium text-wavo-text">{loading ? '...' : m.value}</p>
             <p className="text-xs text-wavo-muted mt-1">{m.sub}</p>
           </div>
         ))}

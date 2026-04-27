@@ -25,4 +25,49 @@ api.interceptors.response.use(
   },
 );
 
+export const getDashboardMetrics = async () => {
+  try {
+    const { data: campaigns } = await api.get('/campaigns');
+    
+    // Obtener stats de todas las campañas
+    const statsPromises = campaigns.map((c: any) => 
+      api.get(`/campaigns/${c.id}/stats`).then(res => res.data.stats).catch(() => null)
+    );
+    
+    const allStats = await Promise.all(statsPromises);
+    
+    let totalSent = 0;
+    let totalDelivered = 0;
+    let totalRead = 0;
+    
+    allStats.forEach((stats: any) => {
+      if (stats) {
+        totalSent += stats.sent || 0;
+        totalDelivered += stats.delivered || 0;
+        totalRead += stats.read || 0;
+      }
+    });
+
+    const deliveryRate = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
+    const openRate = totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
+
+    return {
+      sent_today: totalSent, // Simplificado, idealmente filtrado por fecha
+      delivery_rate: deliveryRate,
+      open_rate: openRate,
+      optouts_week: 0, // No hay endpoint de optouts globales, mantenemos en 0 o fetch contactos
+      campaigns: campaigns.slice(0, 5),
+    };
+  } catch (error) {
+    console.error('Error fetching dashboard metrics:', error);
+    return {
+      sent_today: 0,
+      delivery_rate: 0,
+      open_rate: 0,
+      optouts_week: 0,
+      campaigns: [],
+    };
+  }
+};
+
 export default api;
