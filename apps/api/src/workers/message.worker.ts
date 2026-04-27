@@ -19,31 +19,50 @@ export class MessageWorker extends WorkerHost {
     const { contactId, campaignId, phone, templateName, bodyVars, imageUrl } =
       job.data;
 
-    this.logger.log(`Procesando mensaje para ${phone}`);
+    try {
+      this.logger.log(`Procesando mensaje para ${phone}`);
 
-    const result = await this.meta.sendTemplate(
-      phone,
-      templateName,
-      bodyVars,
-      imageUrl,
-    );
+      const result = await this.meta.sendTemplate(
+        phone,
+        templateName,
+        bodyVars,
+        imageUrl,
+      );
 
-    const messageId = result.messages?.[0]?.id;
+      const messageId = result.messages?.[0]?.id;
 
-    await this.supabase.client
-      .from('message_logs')
-      .update({
-        meta_message_id: messageId,
-        status: 'sent',
-        updated_at: new Date().toISOString(),
-      })
-      .match({ campaign_id: campaignId, contact_id: contactId });
+      await this.supabase.client
+        .from('message_logs')
+        .update({
+          meta_message_id: messageId,
+          status: 'sent',
+          updated_at: new Date().toISOString(),
+        })
+        .match({ campaign_id: campaignId, contact_id: contactId });
 
-    await this.supabase.client
-      .from('campaigns')
-      .update({ sent_count: this.supabase.client.rpc('increment', { x: 1 }) })
-      .eq('id', campaignId);
+      await this.supabase.client
+        .from('campaigns')
+        .update({ sent_count: this.supabase.client.rpc('increment', { x: 1 }) })
+        .eq('id', campaignId);
 
-    return { messageId };
+      return { messageId };
+    } catch (error) {
+      this.logger.error(`Error enviando a ${phone}: ${error.message}`);
+      
+      const errorCode = error.response?.data?.error?.code || 'ERROR';
+      const errorMessage = error.response?.data?.error?.message || error.message;
+
+      await this.supabase.client
+        .from('message_logs')
+        .update({
+          status: 'failed',
+          error_code: errorCode.toString(),
+          error_message: errorMessage,
+          updated_at: new Date().toISOString(),
+        })
+        .match({ campaign_id: campaignId, contact_id: contactId });
+
+      throw error; // Reintento por BullMQ
+    }
   }
 }

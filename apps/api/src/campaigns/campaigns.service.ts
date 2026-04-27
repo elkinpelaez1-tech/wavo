@@ -127,13 +127,13 @@ export class CampaignsService {
     // Obtener contactos activos (no opted_out)
     const { data: logs } = await this.supabase.client
       .from('message_logs')
-      .select('contact_id, contacts(phone, custom_fields, opted_out)')
+      .select('contact_id, contacts(phone_normalized, custom_fields, opted_out, deleted_at)')
       .eq('campaign_id', campaign.id)
       .eq('status', 'queued');
 
     const active = logs?.filter((l: any) => {
       const contact = Array.isArray(l.contacts) ? l.contacts[0] : l.contacts;
-      return !contact?.opted_out;
+      return contact && !contact.opted_out && !contact.deleted_at;
     }) ?? [];
 
     // Marcar como running
@@ -146,7 +146,7 @@ export class CampaignsService {
     for (let i = 0; i < active.length; i++) {
       const log: any = active[i];
       const contact = Array.isArray(log.contacts) ? log.contacts[0] : log.contacts;
-      const phone = contact?.phone;
+      const phone = contact?.phone_normalized;
       const customFields = contact?.custom_fields || {};
       const bodyVars = Object.values(customFields).map(String);
 
@@ -157,8 +157,14 @@ export class CampaignsService {
         campaign.template_name,
         bodyVars,
         campaign.image_url,
-        i * 1000, // 1 segundo entre mensajes
+        i * 1000, // delay EXACTO: index * 1000
       );
     }
+
+    // Marcar como completed después de encolar todo
+    await this.supabase.client
+      .from('campaigns')
+      .update({ status: 'completed' })
+      .eq('id', campaign.id);
   }
 }

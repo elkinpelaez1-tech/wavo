@@ -18,7 +18,7 @@ export class WebhooksController {
     @Query('hub.verify_token') token: string,
     @Query('hub.challenge') challenge: string,
   ): string {
-    if (mode === 'subscribe' && token === process.env.META_VERIFY_TOKEN)
+    if (mode === 'subscribe' && token === process.env.META_WEBHOOK_VERIFY_TOKEN)
       return challenge;
     throw new ForbiddenException('Verification failed');
   }
