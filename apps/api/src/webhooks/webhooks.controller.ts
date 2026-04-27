@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Query, Body, Headers,
   HttpCode, UnauthorizedException, RawBodyRequest, Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import * as crypto from 'crypto';
@@ -17,9 +18,9 @@ export class WebhooksController {
     @Query('hub.verify_token') token: string,
     @Query('hub.challenge') challenge: string,
   ): string {
-    if (mode === 'subscribe' && token === process.env.META_WEBHOOK_VERIFY_TOKEN)
+    if (mode === 'subscribe' && token === process.env.META_VERIFY_TOKEN)
       return challenge;
-    throw new UnauthorizedException('Token inválido');
+    throw new ForbiddenException('Verification failed');
   }
 
   @Post('meta')
