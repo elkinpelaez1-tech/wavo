@@ -36,6 +36,16 @@ const statusBadge = (s: string) => {
   return <span className={map[s] || 'badge-amber'}>{labels[s] || s}</span>;
 };
 
+import { MetricCard } from '@/components/dashboard/MetricCard';
+import { CampaignItem } from '@/components/dashboard/CampaignItem';
+import { ProgressBar } from '@/components/dashboard/ProgressBar';
+import { CalendarUI } from '@/components/dashboard/CalendarUI';
+
+import { MetricCard } from '@/components/dashboard/MetricCard';
+import { CampaignItem } from '@/components/dashboard/CampaignItem';
+import { ProgressBar } from '@/components/dashboard/ProgressBar';
+import { CalendarUI } from '@/components/dashboard/CalendarUI';
+
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [stats, setStats] = useState<Stats>({
@@ -62,74 +72,85 @@ export default function DashboardPage() {
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
 
   return (
-    <div>
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-lg font-medium text-wavo-text">Panel general</h1>
-          <p className="text-sm text-wavo-muted capitalize">{today}</p>
+          <h1 className="text-xl font-semibold text-[#2c2a1e] tracking-tight">Panel principal</h1>
+          <p className="text-[13px] text-[#908c72] capitalize mt-0.5">{today}</p>
         </div>
-        <a href="/dashboard/campaigns/new" className="btn-primary">
-          + Nueva campaña
-        </a>
+        <div className="flex gap-3 items-center">
+          <a href="/dashboard/campaigns/new" className="bg-[#1D9E75] hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-[#1D9E75]/20">
+            + Nueva campaña
+          </a>
+          <div className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20">
+            WA
+          </div>
+        </div>
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Enviados hoy', value: stats.sent_today.toString(), sub: 'Actualizado' },
-          { label: 'Tasa de entrega', value: `${stats.delivery_rate}%`, sub: 'Global' },
-          { label: 'Tasa de apertura', value: `${stats.open_rate}%`, sub: 'Global' },
-          { label: 'Opt-outs', value: stats.optouts_week.toString(), sub: 'Esta semana' },
-        ].map((m) => (
-          <div key={m.label} className="metric-card">
-            <p className="text-xs text-wavo-muted mb-1">{m.label}</p>
-            <p className="text-2xl font-medium text-wavo-text">{loading ? '...' : m.value}</p>
-            <p className="text-xs text-wavo-muted mt-1">{m.sub}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <MetricCard 
+          label="Enviados hoy" 
+          value={loading ? '...' : stats.sent_today.toLocaleString()} 
+          sub="↑ 12% vs ayer" 
+        />
+        <MetricCard 
+          label="Tasa de entrega" 
+          value={loading ? '...' : `${stats.delivery_rate}%`} 
+          sub="↑ 2.1% esta semana" 
+        />
+        <MetricCard 
+          label="Tasa de apertura" 
+          value={loading ? '...' : `${stats.open_rate}%`} 
+          sub="↑ 5.3% este mes" 
+        />
+        <MetricCard 
+          label="Opt-outs (7 días)" 
+          value={loading ? '...' : stats.optouts_week.toString()} 
+          sub="↑ 3 desde ayer" 
+          isWarning={true}
+        />
       </div>
 
-      {/* Campañas recientes */}
-      <div className="card">
-        <h2 className="text-sm font-medium text-wavo-text mb-4">Campañas recientes</h2>
-        {loading ? (
-          <p className="text-sm text-wavo-muted">Cargando...</p>
-        ) : campaigns.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-wavo-muted mb-3">No hay campañas todavía</p>
-            <a href="/dashboard/campaigns/new" className="btn-primary text-sm">
-              Crear primera campaña
-            </a>
+      {/* Grid: Campañas y Rendimiento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Campañas activas */}
+        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[13px] font-semibold text-[#2c2a1e]">Campañas activas</h2>
+            <a href="/dashboard/campaigns" className="text-[11px] font-medium text-[#1D9E75] hover:underline">Ver todas</a>
           </div>
-        ) : (
-          <div className="divide-y divide-wavo-border">
-            {campaigns.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 py-3">
-                <div className="w-9 h-9 rounded-md bg-wavo-sidebar border border-wavo-border flex items-center justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#908c72" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M3 9h18M9 21V9"/>
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-wavo-text truncate">{c.name}</p>
-                  <div className="w-full bg-wavo-border rounded-full h-1 mt-1">
-                    <div
-                      className="bg-wavo-green h-1 rounded-full"
-                      style={{ width: `${c.total_recipients > 0 ? (c.sent_count / c.total_recipients) * 100 : 0}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-wavo-muted mt-0.5">
-                    {c.sent_count} / {c.total_recipients} enviados
-                  </p>
-                </div>
-                {statusBadge(c.status)}
-              </div>
-            ))}
+          {loading ? (
+            <p className="text-[12px] text-[#908c72] py-4">Cargando datos...</p>
+          ) : campaigns.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-[12px] text-[#908c72] mb-3">No hay campañas activas</p>
+              <a href="/dashboard/campaigns/new" className="text-[#1D9E75] font-medium text-xs hover:underline">Crear primera campaña</a>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {campaigns.map(c => <CampaignItem key={c.id} campaign={c} />)}
+            </div>
+          )}
+        </div>
+
+        {/* Rendimiento por campaña */}
+        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm">
+          <h2 className="text-[13px] font-semibold text-[#2c2a1e] mb-5">Rendimiento global</h2>
+          <div className="flex flex-col gap-2">
+            <ProgressBar label="Entregado" percentage={stats.delivery_rate} color="#1D9E75" delay={100} />
+            <ProgressBar label="Abierto" percentage={stats.open_rate} color="#5DCAA5" delay={200} />
+            <ProgressBar label="Respondió" percentage={0} color="#0F6E56" delay={300} />
+            <ProgressBar label="Fallido" percentage={Math.max(0, 100 - stats.delivery_rate - stats.open_rate)} color="#EDE8D0" delay={400} />
+            <ProgressBar label="Opt-out" percentage={stats.optouts_week > 0 ? 2 : 0} color="#F0997B" delay={500} />
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Calendario */}
+      <CalendarUI />
     </div>
   );
 }

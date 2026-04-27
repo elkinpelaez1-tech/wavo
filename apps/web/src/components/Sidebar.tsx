@@ -1,7 +1,6 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAuthStore } from '@/lib/auth-store';
 
 const navItems = [
   { href: '/dashboard',            label: 'Panel' },
@@ -10,56 +9,44 @@ const navItems = [
   { href: '/dashboard/calendar',   label: 'Calendario' },
   { href: '/dashboard/templates',  label: 'Templates' },
   { href: '/dashboard/stats',      label: 'Estadísticas' },
+  { href: '/dashboard/settings',   label: 'Configuración' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
 
   return (
-    <aside className="w-52 min-h-screen bg-wavo-sidebar border-r border-wavo-border flex flex-col shrink-0">
+    <aside className="w-[200px] bg-[#F5F1DF] border-r border-[#EDE8D0] py-5 flex flex-col shrink-0">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-wavo-border">
-        <div className="flex items-center gap-2 mb-1">
-          <svg width="24" height="24" viewBox="0 0 48 48">
-            <path d="M6,24 Q14,10 22,24 Q30,38 38,24" fill="none" stroke="#0F6E56" strokeWidth="2.5" strokeLinecap="round"/>
-            <path d="M10,24 Q18,8 26,24 Q34,40 42,24" fill="none" stroke="#1D9E75" strokeWidth="3" strokeLinecap="round"/>
-            <path d="M14,24 Q22,6 30,24 Q38,42 46,24" fill="none" stroke="#5DCAA5" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <span className="text-base font-extrabold text-wavo-dark tracking-tight">wavo</span>
+      <div className="px-5 pb-6 flex items-center gap-2">
+        <div className="flex items-end gap-[2px] h-[22px]">
+          <span className="block w-1 rounded-sm h-[10px] bg-[#5DCAA5]"></span>
+          <span className="block w-1 rounded-sm h-[16px] bg-[#1D9E75]"></span>
+          <span className="block w-1 rounded-sm h-[22px] bg-[#0F6E56]"></span>
         </div>
-        <p className="text-xs text-wavo-muted truncate">{user?.business_name || '—'}</p>
+        <span className="text-[18px] font-extrabold text-[#0d1f1a] tracking-tight">wavo</span>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2">
+      <nav className="flex-1">
         {navItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center px-4 py-2 text-sm transition-colors ${
+              className={`flex items-center gap-2.5 px-5 py-[9px] text-[13px] cursor-pointer border-l-2 transition-all duration-150 ${
                 active
-                  ? 'bg-wavo-card text-wavo-text font-medium border-l-2 border-wavo-green'
-                  : 'text-wavo-muted hover:bg-wavo-card'
+                  ? 'text-[#1D9E75] bg-[#EAF5EF] border-[#1D9E75] font-medium'
+                  : 'text-[#908c72] border-transparent hover:bg-[#EDE8D0] hover:text-[#2c2a1e]'
               }`}
             >
+              <span className={`w-[7px] h-[7px] rounded-full bg-current ${active ? 'opacity-100' : 'opacity-50'}`}></span>
               {item.label}
             </Link>
           );
         })}
       </nav>
-
-      {/* Bottom */}
-      <div className="border-t border-wavo-border p-4">
-        <Link href="/dashboard/settings" className="block text-sm text-wavo-muted hover:text-wavo-text mb-2">
-          Configuración
-        </Link>
-        <button onClick={logout} className="text-xs text-red-500 hover:text-red-700">
-          Cerrar sesión
-        </button>
-      </div>
     </aside>
   );
 }
