@@ -4,12 +4,13 @@ import { BullModule } from '@nestjs/bullmq';
 import { MessageWorker } from './message.worker';
 import { MetaModule } from '../meta/meta.module';
 import { SupabaseModule } from '../supabase/supabase.module';
+import { getRedisConnection } from '../queue/redis.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRoot({
-      connection: { url: process.env.REDIS_URL || 'redis://localhost:6379' },
+      connection: getRedisConnection(),
     }),
     BullModule.registerQueue({ name: 'messages' }),
     SupabaseModule,

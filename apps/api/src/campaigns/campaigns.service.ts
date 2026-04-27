@@ -131,7 +131,10 @@ export class CampaignsService {
       .eq('campaign_id', campaign.id)
       .eq('status', 'queued');
 
-    const active = logs?.filter((l) => !l.contacts?.opted_out) ?? [];
+    const active = logs?.filter((l: any) => {
+      const contact = Array.isArray(l.contacts) ? l.contacts[0] : l.contacts;
+      return !contact?.opted_out;
+    }) ?? [];
 
     // Marcar como running
     await this.supabase.client
@@ -141,9 +144,10 @@ export class CampaignsService {
 
     // Encolar con rate limit: 1 msg/seg
     for (let i = 0; i < active.length; i++) {
-      const log = active[i];
-      const phone = log.contacts?.phone;
-      const customFields = log.contacts?.custom_fields || {};
+      const log: any = active[i];
+      const contact = Array.isArray(log.contacts) ? log.contacts[0] : log.contacts;
+      const phone = contact?.phone;
+      const customFields = contact?.custom_fields || {};
       const bodyVars = Object.values(customFields).map(String);
 
       await this.producer.enqueue(

@@ -10,13 +10,14 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { MetaModule } from './meta/meta.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { QueueModule } from './queue/queue.module';
+import { getRedisConnection } from './queue/redis.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
-      connection: { url: process.env.REDIS_URL || 'redis://localhost:6379' },
+      connection: getRedisConnection(),
     }),
     SupabaseModule,
     AuthModule,
