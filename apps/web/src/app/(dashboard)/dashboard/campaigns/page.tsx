@@ -10,6 +10,7 @@ interface Campaign {
   total_recipients: number;
   scheduled_at: string;
   created_at: string;
+  template_name?: string;
 }
 
 const statusBadge = (s: string) => {
@@ -72,7 +73,7 @@ export default function CampaignsPage() {
                 <tr key={c.id} className="hover:bg-wavo-sidebar transition-colors">
                   <td className="py-3 px-2">
                     <p className="font-medium text-wavo-text">{c.name}</p>
-                    <p className="text-xs text-wavo-muted">{c.templateName || 'Sin template'}</p>
+                    <p className="text-xs text-wavo-muted">{c.template_name || 'Sin template'}</p>
                   </td>
                   <td className="py-3 px-2">{statusBadge(c.status)}</td>
                   <td className="py-3 px-2">

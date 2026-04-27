@@ -18,6 +18,7 @@ interface Campaign {
   sent_count: number;
   total_recipients: number;
   scheduled_at: string;
+  template_name?: string;
 }
 
 const statusBadge = (s: string) => {
