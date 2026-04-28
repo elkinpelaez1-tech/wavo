@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { normalizePhone } from '../common/utils/phone.utils';
 
@@ -28,40 +28,55 @@ export class ContactsService {
   }
 
   async create(userId: string, dto: CreateContactDto) {
-    const phoneNormalized = normalizePhone(dto.phone);
-    console.log("[ContactsService] Creando contacto:", { userId, phoneNormalized });
+    try {
+      const phoneNormalized = normalizePhone(dto.phone);
+      console.log("[ContactsService] Iniciando creación:", { userId, phoneNormalized, name: dto.name });
 
-    // Verificar duplicados manualmente para dar error claro
-    const { data: existing } = await this.supabase.client
-      .from('contacts')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('phone_normalized', phoneNormalized)
-      .is('deleted_at', null)
-      .single();
+      if (!phoneNormalized) {
+        throw new Error("El teléfono no es válido después de la normalización.");
+      }
 
-    if (existing) {
-      console.warn("[ContactsService] Contacto duplicado detectado");
-      throw new ConflictException('Ya existe un contacto con este número');
+      // Verificar duplicados manualmente para dar error claro
+      const { data: existing, error: checkError } = await this.supabase.client
+        .from('contacts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('phone_normalized', phoneNormalized)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("[ContactsService] Error al verificar duplicados:", checkError);
+      }
+
+      if (existing) {
+        throw new ConflictException('Ya existe un contacto con este número');
+      }
+
+      const { data, error } = await this.supabase.client
+        .from('contacts')
+        .insert({
+          name: dto.name,
+          phone: dto.phone,
+          phone_normalized: phoneNormalized,
+          user_id: userId,
+          tags: dto.tags || [],
+          custom_fields: dto.custom_fields || {},
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("[ContactsService] Error de Supabase al insertar:", error);
+        throw new Error(`Supabase: ${error.message} (${error.code})`);
+      }
+      
+      return data;
+    } catch (err: any) {
+      console.error("[ContactsService] Error capturado en create:", err);
+      if (err instanceof ConflictException) throw err;
+      throw new InternalServerErrorException(err.message || 'Error desconocido en el servidor');
     }
-
-    const { data, error } = await this.supabase.client
-      .from('contacts')
-      .insert({
-        ...dto,
-        user_id: userId,
-        phone_normalized: phoneNormalized,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("[ContactsService] Error al insertar en Supabase:", error);
-      throw new Error(error.message);
-    }
-    
-    console.log("[ContactsService] Contacto creado con éxito:", data.id);
-    return data;
   }
 
   async importBulk(userId: string, contacts: CreateContactDto[]) {
