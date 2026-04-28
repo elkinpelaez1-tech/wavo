@@ -29,6 +29,7 @@ export class ContactsService {
 
   async create(userId: string, dto: CreateContactDto) {
     const phoneNormalized = normalizePhone(dto.phone);
+    console.log("[ContactsService] Creando contacto:", { userId, phoneNormalized });
 
     // Verificar duplicados manualmente para dar error claro
     const { data: existing } = await this.supabase.client
@@ -40,6 +41,7 @@ export class ContactsService {
       .single();
 
     if (existing) {
+      console.warn("[ContactsService] Contacto duplicado detectado");
       throw new ConflictException('Ya existe un contacto con este número');
     }
 
@@ -53,7 +55,12 @@ export class ContactsService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[ContactsService] Error al insertar en Supabase:", error);
+      throw new Error(error.message);
+    }
+    
+    console.log("[ContactsService] Contacto creado con éxito:", data.id);
     return data;
   }
 

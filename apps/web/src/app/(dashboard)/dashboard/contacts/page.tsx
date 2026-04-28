@@ -19,11 +19,20 @@ export default function ContactsPage() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await api.post('/contacts', form);
-    setForm({ name: '', phone: '' });
-    setSaving(false);
-    load();
+    try {
+      console.log("[ContactsPage] Enviando contacto:", form);
+      const { data } = await api.post('/contacts', form);
+      console.log("[ContactsPage] Respuesta exitosa:", data);
+      setForm({ name: '', phone: '' });
+      load();
+    } catch (err: any) {
+      console.error("[ContactsPage] Error al guardar:", err);
+      alert(err.response?.data?.message || 'Error al guardar contacto');
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   const handleDelete = async (id: string) => {
     await api.delete(`/contacts/${id}`);
