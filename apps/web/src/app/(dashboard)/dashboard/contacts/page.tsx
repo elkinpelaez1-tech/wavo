@@ -5,7 +5,8 @@ import api from '@/lib/api';
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', phone: '' });
+  const [form, setForm] = useState({ name: '', phone: '', tags: '' });
+
   const [saving, setSaving] = useState(false);
 
   const load = () =>
@@ -20,11 +21,16 @@ export default function ContactsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      console.log("[ContactsPage] Enviando contacto:", form);
-      const { data } = await api.post('/contacts', form);
+      const payload = {
+        ...form,
+        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean)
+      };
+      console.log("[ContactsPage] Enviando contacto:", payload);
+      const { data } = await api.post('/contacts', payload);
       console.log("[ContactsPage] Respuesta exitosa:", data);
-      setForm({ name: '', phone: '' });
+      setForm({ name: '', phone: '', tags: '' });
       load();
+
     } catch (err: any) {
       console.error("[ContactsPage] Error al guardar:", err);
       const msg = err.response?.data?.message || err.message || 'Error desconocido';
@@ -86,7 +92,14 @@ export default function ContactsPage() {
             onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
             required
           />
+          <input
+            className="input flex-1"
+            placeholder="Etiquetas (vips, bogota...)"
+            value={form.tags}
+            onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
+          />
           <button type="submit" className="btn-primary shrink-0" disabled={saving}>
+
             {saving ? '...' : 'Agregar'}
           </button>
         </form>
