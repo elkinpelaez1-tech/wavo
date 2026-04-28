@@ -41,11 +41,6 @@ import { CampaignItem } from '@/components/dashboard/CampaignItem';
 import { ProgressBar } from '@/components/dashboard/ProgressBar';
 import { CalendarUI } from '@/components/dashboard/CalendarUI';
 
-import { MetricCard } from '@/components/dashboard/MetricCard';
-import { CampaignItem } from '@/components/dashboard/CampaignItem';
-import { ProgressBar } from '@/components/dashboard/ProgressBar';
-import { CalendarUI } from '@/components/dashboard/CalendarUI';
-
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [stats, setStats] = useState<Stats>({
