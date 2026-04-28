@@ -7,6 +7,14 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 export class AuthController {
   constructor(private auth: AuthService) {}
 
+  @Get('ping')
+  ping() {
+    return {
+      status: 'ok',
+      frontend_url: process.env.FRONTEND_URL || 'NOT_SET'
+    };
+  }
+
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
