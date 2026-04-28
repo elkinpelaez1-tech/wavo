@@ -5,7 +5,9 @@ export class CreateCampaignDto {
   name: string;
 
   @IsString()
-  template_name: string;
+  @IsOptional()
+  template_name?: string;
+
 
   @IsString()
   @IsOptional()

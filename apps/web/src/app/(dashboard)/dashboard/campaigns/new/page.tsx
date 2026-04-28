@@ -83,8 +83,8 @@ export default function NewCampaignPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.template_name) { setError('Selecciona un template'); return; }
     if (selected.length === 0) { setError('Selecciona al menos un contacto'); return; }
+
     setSaving(true);
     try {
       await api.post('/campaigns', { ...form, contact_ids: selected });
@@ -113,8 +113,9 @@ export default function NewCampaignPage() {
             <input className="input" placeholder="Promo Mayo 2026" onChange={set('name')} required />
           </div>
           <div>
-            <label className="label">Template HSM</label>
-            <select className="input" onChange={set('template_name')} required>
+            <label className="label">Template HSM (Opcional para MVP)</label>
+            <select className="input" onChange={set('template_name')}>
+
               <option value="">— Seleccionar template —</option>
               {templates.map((t) => (
                 <option key={t.id} value={t.meta_template_name}>
@@ -129,7 +130,14 @@ export default function NewCampaignPage() {
                 </a>
               </p>
             )}
+            {!form.template_name && (
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                La campaña se guardará como borrador. Necesitarás un template para enviarla.
+              </p>
+            )}
           </div>
+
           <div>
             <label className="label">Imagen de la campaña (opcional)</label>
             <div className="mt-1 flex items-center gap-4">
