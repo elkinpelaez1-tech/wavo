@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { supabase } from '@/lib/supabase';
+
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -12,7 +14,10 @@ export default function NewCampaignPage() {
     name: '', template_name: '', image_url: '', scheduled_at: '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [preview, setPreview] = useState('');
+
 
   useEffect(() => {
     api.get('/templates').then(({ data }) => setTemplates(data || []));
@@ -29,6 +34,43 @@ export default function NewCampaignPage() {
 
   const selectAll = () =>
     setSelected(selected.length === contacts.length ? [] : contacts.map((c) => c.id));
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Preview local
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `campaigns/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('campaign-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign-images')
+        .getPublicUrl(filePath);
+
+      setForm(prev => ({ ...prev, image_url: publicUrl }));
+    } catch (err: any) {
+      console.error('Error uploading:', err);
+      setError('Error al subir la imagen. Asegúrate de que el bucket "campaign-images" exista y sea público.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,9 +122,51 @@ export default function NewCampaignPage() {
             )}
           </div>
           <div>
-            <label className="label">URL de imagen (opcional)</label>
-            <input className="input" placeholder="https://..." onChange={set('image_url')} />
-            <p className="text-xs text-wavo-muted mt-1">Imagen pública accesible por Meta</p>
+            <label className="label">Imagen de la campaña (opcional)</label>
+            <div className="mt-1 flex items-center gap-4">
+              <div className="relative group flex-1">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  className="hidden" 
+                  id="image-upload"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                />
+                <label 
+                  htmlFor="image-upload"
+                  className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all
+                    ${preview ? 'border-wavo-green bg-wavo-sidebar' : 'border-wavo-border hover:border-wavo-green bg-wavo-sand'}
+                    ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {preview ? (
+                    <img src={preview} alt="Preview" className="h-full w-full object-contain rounded-lg" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg className="w-8 h-8 mb-3 text-wavo-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-xs text-wavo-muted">Click para subir imagen</p>
+                    </div>
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-xl">
+                      <span className="text-xs font-medium text-wavo-green">Subiendo...</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+              {preview && !uploading && (
+                <button 
+                  type="button" 
+                  onClick={() => { setPreview(''); setForm(prev => ({ ...prev, image_url: '' })); }}
+                  className="text-xs text-red-500 hover:underline"
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-wavo-muted mt-2">La imagen debe ser pública para que Meta pueda enviarla.</p>
           </div>
           <div>
             <label className="label">Programar envío (opcional)</label>
