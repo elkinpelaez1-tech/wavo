@@ -54,11 +54,17 @@ export default function NewCampaignPage() {
       const filePath = `campaigns/${fileName}`;
 
       const supabase = getSupabase();
+      console.log('Iniciando subida a bucket "campaign-images"...');
       const { data, error: uploadError } = await supabase.storage
         .from('campaign-images')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error detallado de Supabase:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Subida exitosa:', data);
 
       const { data: { publicUrl } } = supabase.storage
         .from('campaign-images')
@@ -66,11 +72,12 @@ export default function NewCampaignPage() {
 
       setForm(prev => ({ ...prev, image_url: publicUrl }));
     } catch (err: any) {
-      console.error('Error uploading:', err);
-      setError('Error al subir la imagen. Asegúrate de que el bucket "campaign-images" exista y sea público.');
+      console.error('Error completo atrapado:', err);
+      setError(`Error de Supabase: ${err.message || JSON.stringify(err)}`);
     } finally {
       setUploading(false);
     }
+
   };
 
 

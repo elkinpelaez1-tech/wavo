@@ -5,8 +5,9 @@ export const getSupabase = () => {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase credentials missing');
+    console.warn('Supabase credentials missing. URL:', supabaseUrl);
   }
+
   
   return createClient(supabaseUrl, supabaseAnonKey);
 };
