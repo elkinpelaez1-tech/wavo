@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
+
 
 
 export default function NewCampaignPage() {
@@ -52,6 +53,7 @@ export default function NewCampaignPage() {
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `campaigns/${fileName}`;
 
+      const supabase = getSupabase();
       const { data, error: uploadError } = await supabase.storage
         .from('campaign-images')
         .upload(filePath, file);
