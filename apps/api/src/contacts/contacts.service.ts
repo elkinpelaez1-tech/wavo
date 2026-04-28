@@ -37,7 +37,6 @@ export class ContactsService {
         throw new Error(`El teléfono recibido ("${dto?.phone}") no es válido después de la normalización.`);
       }
 
-
       // Verificar duplicados manualmente para dar error claro
       const { data: existing, error: checkError } = await this.supabase.client
         .from('contacts')
@@ -70,7 +69,7 @@ export class ContactsService {
 
       if (error) {
         console.error("[ContactsService] Error de Supabase al insertar:", error);
-        throw new Error(`Supabase: ${error.message} (${error.code})`);
+        throw new Error(`DB Error: ${error.message} - Code: ${error.code} - Hint: ${error.hint}`);
       }
       
       return data;

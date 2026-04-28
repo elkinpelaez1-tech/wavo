@@ -27,10 +27,12 @@ export default function ContactsPage() {
       load();
     } catch (err: any) {
       console.error("[ContactsPage] Error al guardar:", err);
-      alert(err.response?.data?.message || 'Error al guardar contacto');
+      const msg = err.response?.data?.message || err.message || 'Error desconocido';
+      alert(`Error al guardar contacto: ${msg}`);
     } finally {
       setSaving(false);
     }
+
   };
 
 
