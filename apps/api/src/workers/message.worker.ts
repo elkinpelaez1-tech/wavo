@@ -16,12 +16,16 @@ export class MessageWorker extends WorkerHost {
   }
 
   async process(job: Job) {
-    const { contactId, campaignId, phone, templateName, bodyVars, imageUrl } =
-      job.data;
+    const { contactId, campaignId, phone, templateName, bodyVars, imageUrl } = job.data;
 
     try {
-      this.logger.log(`Procesando mensaje para ${phone}`);
+      this.logger.log(`[Worker] Procesando envío para: ${phone} (Campaña: ${campaignId})`);
 
+      if (!templateName) {
+        throw new Error('No se puede enviar mensaje sin template_name');
+      }
+
+      // 1. Envío real a Meta
       const result = await this.meta.sendTemplate(
         phone,
         templateName,
@@ -30,9 +34,11 @@ export class MessageWorker extends WorkerHost {
       );
 
       const messageId = result.messages?.[0]?.id;
+      this.logger.log(`[Worker] Exito Meta - Tel: ${phone} - MsgID: ${messageId}`);
 
-      await this.supabase.client
-        .from('message_logs')
+      // 2. Actualizar registro en campaign_recipients (NO message_logs)
+      const { error: dbError } = await this.supabase.client
+        .from('campaign_recipients')
         .update({
           meta_message_id: messageId,
           status: 'sent',
@@ -40,20 +46,32 @@ export class MessageWorker extends WorkerHost {
         })
         .match({ campaign_id: campaignId, contact_id: contactId });
 
+      if (dbError) {
+        this.logger.error(`[Worker] Error actualizando DB para ${phone}: ${dbError.message}`);
+      }
+
+      // 3. Incrementar contador en campaña
+      // Usamos una actualización simple si no hay RPC
+      const { data: campaign } = await this.supabase.client
+        .from('campaigns')
+        .select('sent_count')
+        .eq('id', campaignId)
+        .single();
+      
       await this.supabase.client
         .from('campaigns')
-        .update({ sent_count: this.supabase.client.rpc('increment', { x: 1 }) })
+        .update({ sent_count: (campaign?.sent_count || 0) + 1 })
         .eq('id', campaignId);
 
       return { messageId };
-    } catch (error) {
-      this.logger.error(`Error enviando a ${phone}: ${error.message}`);
-      
+    } catch (error: any) {
       const errorCode = error.response?.data?.error?.code || 'ERROR';
       const errorMessage = error.response?.data?.error?.message || error.message;
+      
+      this.logger.error(`[Worker] FALLO Meta - Tel: ${phone} - Error: ${errorMessage}`);
 
       await this.supabase.client
-        .from('message_logs')
+        .from('campaign_recipients')
         .update({
           status: 'failed',
           error_code: errorCode.toString(),
@@ -62,7 +80,7 @@ export class MessageWorker extends WorkerHost {
         })
         .match({ campaign_id: campaignId, contact_id: contactId });
 
-      throw error; // Reintento por BullMQ
+      throw error; // BullMQ reintentará según configuración
     }
   }
 }
