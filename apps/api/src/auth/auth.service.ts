@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SupabaseService } from '../supabase/supabase.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
@@ -12,33 +12,52 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const { data: existing } = await this.supabase.client
-      .from('users')
-      .select('id')
-      .eq('email', dto.email)
-      .single();
+    try {
+      console.log("[AuthService] Verificando si existe:", dto.email);
+      const { data: existing, error: existingError } = await this.supabase.client
+        .from('users')
+        .select('id')
+        .eq('email', dto.email)
+        .single();
+      
+      if (existingError && existingError.code !== 'PGRST116') {
+        console.log("[AuthService] Error checking existing user:", existingError);
+      }
 
-    if (existing) throw new ConflictException('Email ya registrado');
+      if (existing) throw new ConflictException('Email ya registrado');
 
-    const hashedPassword = crypto
-      .createHash('sha256')
-      .update(dto.password + process.env.JWT_SECRET)
-      .digest('hex');
+      const hashedPassword = crypto
+        .createHash('sha256')
+        .update(dto.password + process.env.JWT_SECRET)
+        .digest('hex');
 
-    const { data, error } = await this.supabase.client
-      .from('users')
-      .insert({
-        email: dto.email,
-        password_hash: hashedPassword,
-        name: dto.name,
-        business_name: dto.business_name,
-      })
-      .select()
-      .single();
+      console.log("Insertando usuario en Supabase...");
+      const { data, error } = await this.supabase.client
+        .from('users')
+        .insert({
+          email: dto.email,
+          password_hash: hashedPassword,
+          name: dto.name,
+          business_name: dto.business_name,
+        })
+        .select()
+        .single();
 
-    if (error) throw new Error(error.message);
+      console.log("[AuthService] Resultado Supabase insert:", { data, error });
 
-    return this.signToken(data.id, data.email);
+      if (error) {
+        console.error("[AuthService] Error exacto Supabase:", error);
+        throw new InternalServerErrorException(`Supabase error: ${JSON.stringify(error)}`);
+      }
+
+      return this.signToken(data.id, data.email);
+    } catch (err) {
+      console.error("[AuthService] Full Try/Catch Error:", err);
+      if (err instanceof ConflictException || err instanceof InternalServerErrorException) {
+        throw err;
+      }
+      throw new InternalServerErrorException(`Real Error: ${err.message || JSON.stringify(err)}`);
+    }
   }
 
   async login(dto: LoginDto) {
