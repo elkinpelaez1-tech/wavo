@@ -30,13 +30,13 @@ export class ContactsService {
   async create(userId: string, dto: CreateContactDto) {
     try {
       console.log("[ContactsService] RAW DTO:", dto);
-      const phoneNormalized = normalizePhone(dto.phone);
-      console.log("[ContactsService] Iniciando creación:", { userId, phoneNormalized, name: dto.name });
-
+      const phoneNormalized = normalizePhone(dto?.phone);
+      console.log("[ContactsService] Iniciando creación:", { userId, phoneNormalized, name: dto?.name });
 
       if (!phoneNormalized) {
-        throw new Error("El teléfono no es válido después de la normalización.");
+        throw new Error(`El teléfono recibido ("${dto?.phone}") no es válido después de la normalización.`);
       }
+
 
       // Verificar duplicados manualmente para dar error claro
       const { data: existing, error: checkError } = await this.supabase.client
