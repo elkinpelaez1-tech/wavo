@@ -105,11 +105,12 @@ export default function CampaignsPage() {
                   </td>
                   <td className="py-3 px-2 text-right">
                     <div className="flex gap-2 justify-end">
-                      {['draft', 'scheduled'].includes(c.status) && (
+                      {['draft', 'scheduled', 'failed'].includes(c.status) && (
                         <button onClick={() => launch(c.id)} className="btn-primary text-xs py-1 px-3">
                           Lanzar
                         </button>
                       )}
+
                       <a href={`/dashboard/campaigns/${c.id}`} className="btn-secondary text-xs py-1 px-3">
                         Ver
                       </a>
