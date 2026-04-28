@@ -70,7 +70,6 @@ export class CampaignsService {
 
         if (logsError) {
           console.error("[CampaignsService] Error al insertar destinatarios:", logsError);
-          // No bloqueamos el retorno de la campaña si fallan los logs, pero avisamos
         }
       }
 
@@ -107,8 +106,13 @@ export class CampaignsService {
     if (!['draft', 'scheduled'].includes(campaign.status))
       throw new BadRequestException('La campaña no puede lanzarse en su estado actual');
 
-    if (!campaign.template_name) {
-      throw new BadRequestException('Debes asignar un template HSM antes de lanzar la campaña');
+    // BLOQUEO: No permitir lanzamiento sin template
+    if (!campaign.template_name || campaign.template_name.trim() === '') {
+      await this.supabase.client
+        .from('campaigns')
+        .update({ status: 'draft' })
+        .eq('id', id);
+      throw new BadRequestException('No puedes lanzar una campaña sin asignar un template HSM primero.');
     }
 
     await this.enqueueCampaign(campaign);
@@ -145,7 +149,6 @@ export class CampaignsService {
   }
 
   private async enqueueCampaign(campaign: any) {
-    // Obtener contactos activos
     const { data: logs } = await this.supabase.client
       .from('campaign_recipients')
       .select('contact_id, contacts(phone_normalized, custom_fields, opted_out, deleted_at)')

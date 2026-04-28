@@ -21,8 +21,9 @@ export class MessageWorker extends WorkerHost {
     try {
       this.logger.log(`[Worker] Procesando envío para: ${phone} (Campaña: ${campaignId})`);
 
-      if (!templateName) {
-        throw new Error('No se puede enviar mensaje sin template_name');
+      if (!templateName || templateName.trim() === '') {
+        this.logger.warn(`[Worker] Abortando envío para ${phone}: No hay template_name`);
+        return { error: 'No template' };
       }
 
       // 1. Envío real a Meta
@@ -36,8 +37,8 @@ export class MessageWorker extends WorkerHost {
       const messageId = result.messages?.[0]?.id;
       this.logger.log(`[Worker] Exito Meta - Tel: ${phone} - MsgID: ${messageId}`);
 
-      // 2. Actualizar registro en campaign_recipients (NO message_logs)
-      const { error: dbError } = await this.supabase.client
+      // 2. Actualizar registro en campaign_recipients
+      await this.supabase.client
         .from('campaign_recipients')
         .update({
           meta_message_id: messageId,
@@ -46,12 +47,7 @@ export class MessageWorker extends WorkerHost {
         })
         .match({ campaign_id: campaignId, contact_id: contactId });
 
-      if (dbError) {
-        this.logger.error(`[Worker] Error actualizando DB para ${phone}: ${dbError.message}`);
-      }
-
       // 3. Incrementar contador en campaña
-      // Usamos una actualización simple si no hay RPC
       const { data: campaign } = await this.supabase.client
         .from('campaigns')
         .select('sent_count')
@@ -67,8 +63,10 @@ export class MessageWorker extends WorkerHost {
     } catch (error: any) {
       const errorCode = error.response?.data?.error?.code || 'ERROR';
       const errorMessage = error.response?.data?.error?.message || error.message;
+      const fullError = error.response?.data || 'No response data';
       
       this.logger.error(`[Worker] FALLO Meta - Tel: ${phone} - Error: ${errorMessage}`);
+      this.logger.error(`[Worker] Detalle completo de Meta: ${JSON.stringify(fullError)}`);
 
       await this.supabase.client
         .from('campaign_recipients')
@@ -80,7 +78,7 @@ export class MessageWorker extends WorkerHost {
         })
         .match({ campaign_id: campaignId, contact_id: contactId });
 
-      throw error; // BullMQ reintentará según configuración
+      throw error;
     }
   }
 }
