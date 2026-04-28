@@ -37,10 +37,21 @@ export default function CampaignsPage() {
   }, []);
 
   const launch = async (id: string) => {
-    await api.post(`/campaigns/${id}/launch`);
-    const { data } = await api.get('/campaigns');
-    setCampaigns(data);
+    try {
+      console.log(`[CampaignsPage] Lanzando campaña ID: ${id}`);
+      const { data } = await api.post(`/campaigns/${id}/launch`);
+      console.log("[CampaignsPage] Lanzamiento exitoso:", data);
+      
+      const { data: updated } = await api.get('/campaigns');
+      setCampaigns(updated);
+      alert('Campaña lanzada con éxito');
+    } catch (err: any) {
+      console.error("[CampaignsPage] Error al lanzar campaña:", err);
+      const msg = err.response?.data?.message || 'Error al lanzar';
+      alert(`Error al lanzar: ${msg}`);
+    }
   };
+
 
   return (
     <div>
