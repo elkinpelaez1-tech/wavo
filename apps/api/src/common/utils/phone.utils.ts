@@ -5,5 +5,14 @@
  */
 export function normalizePhone(phone: string): string {
   if (!phone) return '';
-  return phone.replace(/[\s\+\-\(\)]/g, '').replace(/\D/g, '');
+  // Limpiar caracteres comunes
+  const clean = phone.toString().replace(/[\s\+\-\(\)]/g, '').replace(/\D/g, '');
+  
+  // Si quedó vacío pero el original tenía algo, intentar al menos quitar espacios
+  if (!clean && phone) {
+    return phone.toString().trim();
+  }
+  
+  return clean;
 }
+

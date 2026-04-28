@@ -29,8 +29,10 @@ export class ContactsService {
 
   async create(userId: string, dto: CreateContactDto) {
     try {
+      console.log("[ContactsService] RAW DTO:", dto);
       const phoneNormalized = normalizePhone(dto.phone);
       console.log("[ContactsService] Iniciando creación:", { userId, phoneNormalized, name: dto.name });
+
 
       if (!phoneNormalized) {
         throw new Error("El teléfono no es válido después de la normalización.");
