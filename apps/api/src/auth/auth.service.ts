@@ -12,52 +12,35 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    try {
-      console.log("[AuthService] Verificando si existe:", dto.email);
-      const { data: existing, error: existingError } = await this.supabase.client
-        .from('users')
-        .select('id')
-        .eq('email', dto.email)
-        .single();
-      
-      if (existingError && existingError.code !== 'PGRST116') {
-        console.log("[AuthService] Error checking existing user:", existingError);
-      }
+    const { data: existing } = await this.supabase.client
+      .from('users')
+      .select('id')
+      .eq('email', dto.email)
+      .single();
 
-      if (existing) throw new ConflictException('Email ya registrado');
+    if (existing) throw new ConflictException('Email ya registrado');
 
-      const hashedPassword = crypto
-        .createHash('sha256')
-        .update(dto.password + process.env.JWT_SECRET)
-        .digest('hex');
+    const hashedPassword = crypto
+      .createHash('sha256')
+      .update(dto.password + process.env.JWT_SECRET)
+      .digest('hex');
 
-      console.log("Insertando usuario en Supabase...");
-      const { data, error } = await this.supabase.client
-        .from('users')
-        .insert({
-          email: dto.email,
-          password_hash: hashedPassword,
-          name: dto.name,
-          business_name: dto.business_name,
-        })
-        .select()
-        .single();
+    const { data, error } = await this.supabase.client
+      .from('users')
+      .insert({
+        email: dto.email,
+        password_hash: hashedPassword,
+        name: dto.name,
+        business_name: dto.business_name,
+      })
+      .select()
+      .single();
 
-      console.log("[AuthService] Resultado Supabase insert:", { data, error });
-
-      if (error) {
-        console.error("[AuthService] Error exacto Supabase:", error);
-        throw new InternalServerErrorException(`Supabase error: ${JSON.stringify(error)}`);
-      }
-
-      return this.signToken(data.id, data.email);
-    } catch (err) {
-      console.error("[AuthService] Full Try/Catch Error:", err);
-      if (err instanceof ConflictException || err instanceof InternalServerErrorException) {
-        throw err;
-      }
-      throw new InternalServerErrorException(`Real Error: ${err.message || JSON.stringify(err)}`);
+    if (error) {
+      throw new InternalServerErrorException(error.message);
     }
+
+    return this.signToken(data.id, data.email);
   }
 
   async login(dto: LoginDto) {
