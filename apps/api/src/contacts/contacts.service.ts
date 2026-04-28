@@ -2,12 +2,26 @@ import { Injectable, NotFoundException, ConflictException, InternalServerErrorEx
 import { SupabaseService } from '../supabase/supabase.service';
 import { normalizePhone } from '../common/utils/phone.utils';
 
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsObject } from 'class-validator';
+
 export class CreateContactDto {
+  @IsString()
+  @IsNotEmpty()
   name: string;
+
+  @IsString()
+  @IsNotEmpty()
   phone: string;
+
+  @IsOptional()
+  @IsArray()
   tags?: string[];
+
+  @IsOptional()
+  @IsObject()
   custom_fields?: Record<string, string>;
 }
+
 
 @Injectable()
 export class ContactsService {
