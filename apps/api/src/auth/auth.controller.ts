@@ -7,6 +7,16 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 export class AuthController {
   constructor(private auth: AuthService) {}
 
+  @Get('ping')
+  ping() {
+    return {
+      status: 'ok',
+      supabase_url_exists: !!process.env.SUPABASE_URL,
+      supabase_url_value: process.env.SUPABASE_URL || 'NONE',
+      redis_url_exists: !!process.env.REDIS_URL,
+    };
+  }
+
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
