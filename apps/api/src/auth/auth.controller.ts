@@ -8,11 +8,19 @@ export class AuthController {
   constructor(private auth: AuthService) {}
 
   @Get('ping')
-  ping() {
+  async ping() {
+    const dns = require('dns');
+    const lookup = await new Promise((resolve) => {
+      dns.lookup('nepilpekxtvvgjzjsidc.supabase.co', (err, address, family) => {
+        resolve({ err, address, family });
+      });
+    });
+
     return {
       status: 'ok',
       supabase_url_exists: !!process.env.SUPABASE_URL,
       supabase_url_value: process.env.SUPABASE_URL || 'NONE',
+      dns_lookup: lookup,
       redis_url_exists: !!process.env.REDIS_URL,
     };
   }
