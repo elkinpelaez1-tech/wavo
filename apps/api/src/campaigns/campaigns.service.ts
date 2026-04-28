@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -36,31 +36,49 @@ export class CampaignsService {
   }
 
   async create(userId: string, dto: CreateCampaignDto) {
-    const { contact_ids, ...campaignData } = dto;
+    try {
+      const { contact_ids, ...campaignData } = dto;
+      console.log("[CampaignsService] Creando campaña:", { userId, name: dto.name, recipients: contact_ids.length });
 
-    const { data: campaign, error } = await this.supabase.client
-      .from('campaigns')
-      .insert({
-        ...campaignData,
-        user_id: userId,
-        status: dto.scheduled_at ? 'scheduled' : 'draft',
-        total_recipients: contact_ids.length,
-      })
-      .select()
-      .single();
+      const { data: campaign, error } = await this.supabase.client
+        .from('campaigns')
+        .insert({
+          ...campaignData,
+          user_id: userId,
+          status: dto.scheduled_at ? 'scheduled' : 'draft',
+          total_recipients: contact_ids.length,
+        })
+        .select()
+        .single();
 
-    if (error) throw new Error(error.message);
+      if (error) {
+        console.error("[CampaignsService] Error al insertar campaña:", error);
+        throw new Error(`DB Error (Campaign): ${error.message} - Code: ${error.code}`);
+      }
 
-    // Crear logs iniciales por contacto
-    const logs = contact_ids.map((contactId) => ({
-      campaign_id: campaign.id,
-      contact_id: contactId,
-      status: 'queued',
-    }));
+      // Crear logs iniciales en campaign_recipients
+      if (contact_ids.length > 0) {
+        const logs = contact_ids.map((contactId) => ({
+          campaign_id: campaign.id,
+          contact_id: contactId,
+          status: 'pending',
+        }));
 
-    await this.supabase.client.from('message_logs').insert(logs);
+        const { error: logsError } = await this.supabase.client
+          .from('campaign_recipients')
+          .insert(logs);
 
-    return campaign;
+        if (logsError) {
+          console.error("[CampaignsService] Error al insertar destinatarios:", logsError);
+          // No bloqueamos el retorno de la campaña si fallan los logs, pero avisamos
+        }
+      }
+
+      return campaign;
+    } catch (err: any) {
+      console.error("[CampaignsService] Error en create:", err);
+      throw new InternalServerErrorException(err.message || 'Error al crear campaña');
+    }
   }
 
   async update(id: string, userId: string, dto: UpdateCampaignDto) {
@@ -89,6 +107,10 @@ export class CampaignsService {
     if (!['draft', 'scheduled'].includes(campaign.status))
       throw new BadRequestException('La campaña no puede lanzarse en su estado actual');
 
+    if (!campaign.template_name) {
+      throw new BadRequestException('Debes asignar un template HSM antes de lanzar la campaña');
+    }
+
     await this.enqueueCampaign(campaign);
     return { launched: true };
   }
@@ -96,17 +118,16 @@ export class CampaignsService {
   async getStats(id: string, userId: string) {
     const campaign = await this.findOne(id, userId);
     const { data: logs } = await this.supabase.client
-      .from('message_logs')
+      .from('campaign_recipients')
       .select('status')
       .eq('campaign_id', id);
 
-    const stats = { queued: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
+    const stats = { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
     logs?.forEach((l) => { if (stats[l.status] !== undefined) stats[l.status]++; });
 
     return { ...campaign, stats };
   }
 
-  // Cron: cada minuto revisa campañas programadas listas para enviar
   @Cron(CronExpression.EVERY_MINUTE)
   async processScheduledCampaigns() {
     const { data: campaigns } = await this.supabase.client
@@ -124,25 +145,23 @@ export class CampaignsService {
   }
 
   private async enqueueCampaign(campaign: any) {
-    // Obtener contactos activos (no opted_out)
+    // Obtener contactos activos
     const { data: logs } = await this.supabase.client
-      .from('message_logs')
+      .from('campaign_recipients')
       .select('contact_id, contacts(phone_normalized, custom_fields, opted_out, deleted_at)')
       .eq('campaign_id', campaign.id)
-      .eq('status', 'queued');
+      .eq('status', 'pending');
 
     const active = logs?.filter((l: any) => {
       const contact = Array.isArray(l.contacts) ? l.contacts[0] : l.contacts;
       return contact && !contact.opted_out && !contact.deleted_at;
     }) ?? [];
 
-    // Marcar como running
     await this.supabase.client
       .from('campaigns')
       .update({ status: 'running' })
       .eq('id', campaign.id);
 
-    // Encolar con rate limit: 1 msg/seg
     for (let i = 0; i < active.length; i++) {
       const log: any = active[i];
       const contact = Array.isArray(log.contacts) ? log.contacts[0] : log.contacts;
@@ -157,11 +176,10 @@ export class CampaignsService {
         campaign.template_name,
         bodyVars,
         campaign.image_url,
-        i * 1000, // delay EXACTO: index * 1000
+        i * 1000,
       );
     }
 
-    // Marcar como completed después de encolar todo
     await this.supabase.client
       .from('campaigns')
       .update({ status: 'completed' })
