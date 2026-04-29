@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { normalizePhone } from '../common/utils/phone.utils';
 
@@ -121,18 +121,25 @@ export class ContactsService {
         throw new BadRequestException(`Solo puedes importar ${available} contactos más en el plan FREE.`);
       }
     }
-    const rows = contacts.map((c) => ({
-      ...c,
-      user_id: userId,
-      phone_normalized: normalizePhone(c.phone),
-    }));
+    const rows = contacts
+      .map((c) => ({
+        ...c,
+        user_id: userId,
+        phone_normalized: normalizePhone(c.phone),
+      }))
+      .filter((r) => r.phone_normalized); // Ignorar si no se pudo normalizar
+
+    if (rows.length === 0) return { imported: 0 };
 
     const { data, error } = await this.supabase.client
       .from('contacts')
       .upsert(rows, { onConflict: 'user_id,phone_normalized' })
       .select();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[ContactsService] Error en importBulk:", error);
+      throw new Error(error.message);
+    }
     return { imported: data?.length ?? 0 };
   }
 
