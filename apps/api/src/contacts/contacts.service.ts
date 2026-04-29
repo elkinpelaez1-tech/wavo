@@ -123,25 +123,28 @@ export class ContactsService {
         }
       }
 
-      const rows = contacts
-        .map((c) => {
-          const phone_normalized = normalizePhone(c.phone);
-          if (!phone_normalized || !c.name) return null;
-          
-          return {
-            name: String(c.name).trim(),
-            phone: String(c.phone).trim(),
-            phone_normalized,
-            user_id: userId,
-            tags: Array.isArray(c.tags) ? c.tags : [],
-            custom_fields: c.custom_fields || {},
-          };
-        })
-        .filter(Boolean);
+      const rowsMap = new Map<string, any>();
+
+      contacts.forEach((c) => {
+        const phone_normalized = normalizePhone(c.phone);
+        if (!phone_normalized || !c.name) return;
+        
+        // El último en aparecer en la lista sobreescribe a los anteriores (deduplicación)
+        rowsMap.set(phone_normalized, {
+          name: String(c.name).trim(),
+          phone: String(c.phone).trim(),
+          phone_normalized,
+          user_id: userId,
+          tags: Array.isArray(c.tags) ? c.tags : [],
+          custom_fields: c.custom_fields || {},
+        });
+      });
+
+      const rows = Array.from(rowsMap.values());
 
       if (rows.length === 0) return { imported: 0 };
 
-      console.log(`[ContactsService] Intentando upsert de ${rows.length} filas`);
+      console.log(`[ContactsService] Intentando upsert de ${rows.length} filas únicas (de ${contacts.length} recibidas)`);
       const { data, error } = await this.supabase.client
         .from('contacts')
         .upsert(rows, { onConflict: 'user_id,phone_normalized' })
