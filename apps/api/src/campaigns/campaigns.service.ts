@@ -102,7 +102,18 @@ export class CampaignsService {
     return { deleted: true };
   }
 
-  async launch(id: string, userId: string) {
+  async launch(id: string, userId: string, plan: string = 'free') {
+    if (plan === 'free') {
+      const { count } = await this.supabase.client
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .in('status', ['running', 'scheduled']);
+      
+      if ((count || 0) >= 1) {
+        throw new BadRequestException('Ya tienes una campaña activa. Actualiza a PRO para lanzar múltiples campañas simultáneas.');
+      }
+    }
     const campaign = await this.findOne(id, userId);
     if (!['draft', 'scheduled'].includes(campaign.status))
       throw new BadRequestException('La campaña no puede lanzarse en su estado actual');

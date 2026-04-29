@@ -21,12 +21,12 @@ export class ContactsController {
 
   @Post()
   create(@Body() dto: CreateContactDto, @Request() req) {
-    return this.contacts.create(req.user.id, dto);
+    return this.contacts.create(req.user.id, dto, req.user.plan);
   }
 
   @Post('import')
   importBulk(@Body() body: { contacts: CreateContactDto[] }, @Request() req) {
-    return this.contacts.importBulk(req.user.id, body.contacts);
+    return this.contacts.importBulk(req.user.id, body.contacts, req.user.plan);
   }
 
   @Patch(':id')

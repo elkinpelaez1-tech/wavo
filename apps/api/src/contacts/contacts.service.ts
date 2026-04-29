@@ -41,7 +41,18 @@ export class ContactsService {
     return { data, total: count, page, limit };
   }
 
-  async create(userId: string, dto: CreateContactDto) {
+  async create(userId: string, dto: CreateContactDto, plan: string = 'free') {
+    if (plan === 'free') {
+      const { count } = await this.supabase.client
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('deleted_at', null);
+      
+      if ((count || 0) >= 50) {
+        throw new BadRequestException('Límite de 50 contactos alcanzado. Actualiza a PRO para agregar más.');
+      }
+    }
     try {
       console.log("[ContactsService] RAW DTO:", dto);
       const phoneNormalized = normalizePhone(dto?.phone);
@@ -94,7 +105,22 @@ export class ContactsService {
     }
   }
 
-  async importBulk(userId: string, contacts: CreateContactDto[]) {
+  async importBulk(userId: string, contacts: CreateContactDto[], plan: string = 'free') {
+    if (plan === 'free') {
+      const { count } = await this.supabase.client
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('deleted_at', null);
+      
+      const available = 50 - (count || 0);
+      if (available <= 0) {
+        throw new BadRequestException('Límite de 50 contactos alcanzado. Actualiza a PRO.');
+      }
+      if (contacts.length > available) {
+        throw new BadRequestException(`Solo puedes importar ${available} contactos más en el plan FREE.`);
+      }
+    }
     const rows = contacts.map((c) => ({
       ...c,
       user_id: userId,

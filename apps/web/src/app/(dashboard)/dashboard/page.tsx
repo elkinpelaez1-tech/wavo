@@ -55,6 +55,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [plan, setPlan] = useState<'free' | 'pro'>('free');
   const { logout: storeLogout } = useAuthStore();
   const router = useRouter();
 
@@ -76,6 +77,8 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setUserEmail(user.email || null);
+          const { data: profile } = await supabase.from('users').select('plan').eq('id', user.id).single();
+          if (profile) setPlan(profile.plan);
         }
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -110,7 +113,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-semibold text-[#2c2a1e] tracking-tight">Panel principal</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-[#2c2a1e] tracking-tight">Panel principal</h1>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${plan === 'pro' ? 'bg-wavo-green text-white' : 'bg-[#EDE8D0] text-[#908c72]'}`}>
+              {plan}
+            </span>
+          </div>
           <p className="text-[13px] text-[#908c72] capitalize mt-0.5">{today}</p>
         </div>
         <div className="flex gap-3 items-center">
@@ -120,6 +128,11 @@ export default function DashboardPage() {
           <a href="/dashboard/campaigns/new" className="bg-wavo-green hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-wavo-green/20">
             + Nueva campaña
           </a>
+          {plan === 'free' && (
+            <button className="bg-[#2c2a1e] hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+              Actualizar a PRO
+            </button>
+          )}
           <div className="relative group/avatar">
             <button 
               onClick={() => setMenuOpen(!menuOpen)}

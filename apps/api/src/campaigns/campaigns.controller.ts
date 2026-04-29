@@ -38,7 +38,7 @@ export class CampaignsController {
 
   @Post(':id/launch')
   launch(@Param('id') id: string, @Request() req) {
-    return this.campaigns.launch(id, req.user.id);
+    return this.campaigns.launch(id, req.user.id, req.user.plan);
   }
 
   @Get(':id/stats')
