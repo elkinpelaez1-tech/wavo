@@ -50,18 +50,48 @@ export default function ContactsPage() {
   const handleCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
     const text = await file.text();
-    const lines = text.split('\n').slice(1);
-    const contacts = lines
-      .filter(Boolean)
-      .map((l) => {
-        const [name, phone] = l.split(',');
-        return { name: name?.trim(), phone: phone?.trim() };
-      })
-      .filter((c) => c.name && c.phone);
-    const { data } = await api.post('/contacts/import', { contacts });
-    alert(`${data.imported} contactos importados`);
-    load();
+    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length < 2) return;
+
+    // Detectar delimitador (el que más aparezca en la cabecera)
+    const header = lines[0];
+    const commaCount = (header.match(/,/g) || []).length;
+    const semiCount = (header.match(/;/g) || []).length;
+    const delimiter = semiCount > commaCount ? ';' : ',';
+
+    const columns = header.split(delimiter).map(c => c.trim().toLowerCase());
+    
+    // Mapeo flexible
+    const nameIdx = columns.findIndex(c => c.includes('name') || c.includes('nombre'));
+    const phoneIdx = columns.findIndex(c => c.includes('phone') || c.includes('telefono') || c.includes('teléfono'));
+    const tagIdx = columns.findIndex(c => c.includes('tag') || c.includes('etiqueta'));
+
+    if (nameIdx === -1 || phoneIdx === -1) {
+      alert('No se encontraron las columnas de Nombre y Teléfono. Verifica el encabezado.');
+      return;
+    }
+
+    const contacts = lines.slice(1).map(line => {
+      const values = line.split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, ''));
+      const tagsValue = tagIdx !== -1 ? values[tagIdx] : '';
+      
+      return {
+        name: values[nameIdx],
+        phone: values[phoneIdx],
+        tags: tagsValue ? tagsValue.split(/[|,-]/).map(t => t.trim()).filter(Boolean) : []
+      };
+    }).filter(c => c.name && c.phone);
+
+    try {
+      const { data } = await api.post('/contacts/import', { contacts });
+      alert(`${data.imported} contactos importados con éxito`);
+      load();
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message;
+      alert(`Error al importar: ${msg}`);
+    }
   };
 
   return (
