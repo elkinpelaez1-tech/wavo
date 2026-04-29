@@ -112,7 +112,7 @@ export default function DashboardPage() {
       {/* Grid: Campañas y Rendimiento */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Campañas activas */}
-        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm flex flex-col">
+        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[13px] font-semibold text-[#2c2a1e]">Campañas activas</h2>
             <a href="/dashboard/campaigns" className="text-[11px] font-medium text-[#1D9E75] hover:underline">Ver todas</a>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Rendimiento por campaña */}
-        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm">
+        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <h2 className="text-[13px] font-semibold text-[#2c2a1e] mb-5">Rendimiento global</h2>
           <div className="flex flex-col gap-2">
             <ProgressBar label="Entregado" percentage={stats.delivery_rate} color="#1D9E75" delay={100} />

@@ -10,7 +10,7 @@ export function CalendarUI() {
   ];
 
   return (
-    <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm">
+    <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-[13px] font-semibold text-[#2c2a1e]">Calendario de campañas</h2>
         <span className="text-[11px] font-medium text-[#908c72] bg-[#F5F1DF] px-2.5 py-1 rounded-md">Abril / Mayo 2026</span>
