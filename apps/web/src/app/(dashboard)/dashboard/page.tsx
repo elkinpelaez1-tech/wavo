@@ -99,6 +99,14 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Onboarding Message */}
+      <div className="bg-[#E1F5EE] border border-[#1D9E75]/20 rounded-lg p-3 mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-500">
+        <span className="text-lg">🚀</span>
+        <p className="text-[13px] font-medium text-[#0F6E56]">
+          Empieza creando un contacto y luego lanza tu primera campaña
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -106,6 +114,9 @@ export default function DashboardPage() {
           <p className="text-[13px] text-[#908c72] capitalize mt-0.5">{today}</p>
         </div>
         <div className="flex gap-3 items-center">
+          <a href="/dashboard/contacts" className="bg-white border border-[#EDE8D0] text-[#2c2a1e] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#FDFCF5] transition-colors shadow-sm">
+            + Crear contacto
+          </a>
           <a href="/dashboard/campaigns/new" className="bg-wavo-green hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-wavo-green/20">
             + Nueva campaña
           </a>
@@ -188,9 +199,15 @@ export default function DashboardPage() {
           {loading ? (
             <p className="text-[12px] text-[#908c72] py-4">Cargando datos...</p>
           ) : campaigns.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-[12px] text-[#908c72] mb-3">No hay campañas activas</p>
-              <a href="/dashboard/campaigns/new" className="text-[#1D9E75] font-medium text-xs hover:underline">Crear primera campaña</a>
+            <div className="text-center py-10">
+              <div className="w-12 h-12 bg-[#F5F1DF] rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
+                📢
+              </div>
+              <h3 className="text-sm font-semibold text-[#2c2a1e] mb-1">Aún no tienes campañas</h3>
+              <p className="text-[11px] text-[#908c72] mb-5">Llega a tus clientes hoy mismo.</p>
+              <a href="/dashboard/campaigns/new" className="bg-wavo-green text-white px-6 py-2 rounded-lg text-xs font-semibold hover:bg-[#0F6E56] transition-colors shadow-sm inline-block">
+                Crear campaña
+              </a>
             </div>
           ) : (
             <div className="flex flex-col">
