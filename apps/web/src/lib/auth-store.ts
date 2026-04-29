@@ -26,20 +26,32 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   login: async (email, password) => {
     set({ loading: true });
-    const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('wavo_token', data.access_token);
-    set({ token: data.access_token, loading: false });
-    const me = await api.get('/auth/me');
-    set({ user: me.data });
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      localStorage.setItem('wavo_token', data.access_token);
+      set({ token: data.access_token, loading: false });
+      const me = await api.get('/auth/me');
+      set({ user: me.data });
+    } catch (error: any) {
+      console.error('Login Error:', error.response?.data || error.message);
+      set({ loading: false });
+      throw error;
+    }
   },
 
   register: async (formData) => {
     set({ loading: true });
-    const { data } = await api.post('/auth/register', formData);
-    localStorage.setItem('wavo_token', data.access_token);
-    set({ token: data.access_token, loading: false });
-    const me = await api.get('/auth/me');
-    set({ user: me.data });
+    try {
+      const { data } = await api.post('/auth/register', formData);
+      localStorage.setItem('wavo_token', data.access_token);
+      set({ token: data.access_token, loading: false });
+      const me = await api.get('/auth/me');
+      set({ user: me.data });
+    } catch (error: any) {
+      console.error('Register Error:', error.response?.data || error.message);
+      set({ loading: false });
+      throw error;
+    }
   },
 
   logout: () => {

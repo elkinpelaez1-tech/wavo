@@ -31,7 +31,7 @@ export function CalendarUI() {
           if (isToday) {
             className += " bg-[#1D9E75] text-white font-bold shadow-md shadow-[#1D9E75]/30 ring-2 ring-offset-1 ring-[#1D9E75]/50 ring-offset-[#FDFCF5] scale-105";
           } else if (day.h) {
-            className += " bg-[#E1F5EE] text-[#0F6E56] font-semibold hover:bg-[#1D9E75] hover:text-white hover:shadow-sm";
+            className += " bg-wavo-mist text-wavo-green font-semibold hover:bg-wavo-green hover:text-white hover:shadow-sm";
           } else {
             className += " text-[#908c72] hover:bg-[#EDE8D0] hover:text-[#2c2a1e] font-medium";
           }

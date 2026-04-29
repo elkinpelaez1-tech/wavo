@@ -12,7 +12,7 @@ interface Campaign {
 }
 
 const statusBadge = (s: string) => {
-  if (s === 'running') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#E1F5EE] text-[#0F6E56] border border-[#0F6E56]/10">ENVIANDO</span>;
+  if (s === 'running') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-wavo-mist text-wavo-green border border-wavo-green/10">ENVIANDO</span>;
   if (s === 'scheduled') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#FAEEDA] text-[#854F0B] border border-[#854F0B]/10">PROGRAMADA</span>;
   if (s === 'completed') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#F5F1DF] text-[#5F5E5A] border border-[#EDE8D0]">COMPLETADA</span>;
   return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#F5F1DF] text-[#854F0B]">BORRADOR</span>;

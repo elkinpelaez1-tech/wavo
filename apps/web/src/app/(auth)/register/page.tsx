@@ -16,7 +16,13 @@ export default function RegisterPage() {
       await register(form);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al registrar');
+      let errorMessage = 'Error al registrar';
+      if (err.response?.data?.message) {
+        errorMessage = Array.isArray(err.response.data.message)
+          ? err.response.data.message.join(', ')
+          : err.response.data.message;
+      }
+      setError(errorMessage);
     }
   };
 

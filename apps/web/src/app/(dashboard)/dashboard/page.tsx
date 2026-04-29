@@ -75,7 +75,7 @@ export default function DashboardPage() {
           <p className="text-[13px] text-[#908c72] capitalize mt-0.5">{today}</p>
         </div>
         <div className="flex gap-3 items-center">
-          <a href="/dashboard/campaigns/new" className="bg-[#1D9E75] hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-[#1D9E75]/20">
+          <a href="/dashboard/campaigns/new" className="bg-wavo-green hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-wavo-green/20">
             + Nueva campaña
           </a>
           <div className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20">

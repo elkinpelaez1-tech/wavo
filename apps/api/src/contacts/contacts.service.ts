@@ -25,7 +25,7 @@ export class CreateContactDto {
 
 @Injectable()
 export class ContactsService {
-  constructor(private supabase: SupabaseService) {}
+  constructor(private supabase: SupabaseService) { }
 
   async findAll(userId: string, page = 1, limit = 50) {
     const from = (page - 1) * limit;
@@ -85,7 +85,7 @@ export class ContactsService {
         console.error("[ContactsService] Error de Supabase al insertar:", error);
         throw new Error(`DB Error: ${error.message} - Code: ${error.code} - Hint: ${error.hint}`);
       }
-      
+
       return data;
     } catch (err: any) {
       console.error("[ContactsService] Error capturado en create:", err);
@@ -133,7 +133,7 @@ export class ContactsService {
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
       .eq('user_id', userId);
-    
+
     if (error) throw new Error(error.message);
     return { deleted: true };
   }

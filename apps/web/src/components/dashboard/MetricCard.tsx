@@ -13,7 +13,7 @@ export function MetricCard({ label, value, sub, isWarning = false }: MetricCardP
       <div className="text-[12px] font-medium text-[#908c72] uppercase tracking-wider mb-2">{label}</div>
       <div className="text-3xl font-semibold text-[#2c2a1e] tracking-tight mb-2.5">{value}</div>
       <div className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
-        isWarning ? 'bg-[#F0997B]/10 text-[#BA7517]' : 'bg-[#1D9E75]/10 text-[#1D9E75]'
+        isWarning ? 'bg-[#F0997B]/10 text-[#BA7517]' : 'bg-wavo-green/10 text-wavo-green'
       }`}>
         {sub}
       </div>

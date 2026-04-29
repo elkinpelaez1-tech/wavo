@@ -16,14 +16,20 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch {
-      setError('Credenciales inválidas');
+    } catch (err: any) {
+      let errorMessage = 'Credenciales inválidas';
+      if (err.response?.data?.message) {
+        errorMessage = Array.isArray(err.response.data.message)
+          ? err.response.data.message.join(', ')
+          : err.response.data.message;
+      }
+      setError(errorMessage);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-wavo-sand">
-      <div className="card w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FAF7EC] to-[#F3EEDD]">
+      <div className="card w-full max-w-[360px] shadow-lg border-black/5 hover:-translate-y-0.5 transition-transform duration-300">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           <svg width="36" height="36" viewBox="0 0 48 48">
@@ -61,7 +67,7 @@ export default function LoginPage() {
             />
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
+          <button type="submit" className="btn-primary w-full shadow-md shadow-wavo-green/30 hover:-translate-y-0.5 transition-all duration-300" disabled={loading}>
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
