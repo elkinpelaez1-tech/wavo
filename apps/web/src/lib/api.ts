@@ -36,6 +36,12 @@ export const getDashboardMetrics = async () => {
     
     const allStats = await Promise.all(statsPromises);
     
+    // Adjuntar stats a cada campaña
+    const campaignsWithStats = campaigns.map((c: any, index: number) => ({
+      ...c,
+      stats: allStats[index] || { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
+    }));
+    
     let totalSent = 0;
     let totalDelivered = 0;
     let totalRead = 0;
@@ -52,11 +58,11 @@ export const getDashboardMetrics = async () => {
     const openRate = totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
 
     return {
-      sent_today: totalSent, // Simplificado, idealmente filtrado por fecha
+      sent_today: totalSent, 
       delivery_rate: deliveryRate,
       open_rate: openRate,
-      optouts_week: 0, // No hay endpoint de optouts globales, mantenemos en 0 o fetch contactos
-      campaigns: campaigns.slice(0, 5),
+      optouts_week: 0, 
+      campaigns: campaignsWithStats.slice(0, 5),
     };
   } catch (error) {
     console.error('Error fetching dashboard metrics:', error);
