@@ -54,6 +54,7 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const { logout: storeLogout } = useAuthStore();
   const router = useRouter();
 
@@ -69,6 +70,19 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const supabase = getSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserEmail(user.email || null);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+    fetchUser();
+
     getDashboardMetrics().then((data) => {
       setStats({
         sent_today: data.sent_today,
@@ -95,13 +109,21 @@ export default function DashboardPage() {
           <a href="/dashboard/campaigns/new" className="bg-wavo-green hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-wavo-green/20">
             + Nueva campaña
           </a>
-          <div className="relative">
+          <div className="relative group/avatar">
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none"
+              className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none uppercase"
+              title={userEmail || ''}
             >
-              WA
+              {userEmail ? userEmail[0] : '?'}
             </button>
+            
+            {/* Tooltip */}
+            {userEmail && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-[#2c2a1e] text-white text-[10px] rounded opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[60]">
+                {userEmail}
+              </div>
+            )}
             
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-[#EDE8D0] rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
