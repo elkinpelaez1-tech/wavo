@@ -17,10 +17,17 @@ export default function TemplatesPage() {
 
   const sync = async () => {
     setSyncing(true);
-    const { data } = await api.get('/templates/sync');
-    alert(`${data.synced} templates sincronizados`);
-    setSyncing(false);
-    load();
+    try {
+      const { data } = await api.get('/templates/sync');
+      alert(`${data.synced} templates sincronizados`);
+      load();
+    } catch (err: any) {
+      console.error("[TemplatesPage] Error syncing:", err);
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || err.message;
+      alert(`Error al sincronizar: ${msg}`);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const statusBadge = (s: string) => {

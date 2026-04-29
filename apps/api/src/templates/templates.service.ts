@@ -20,24 +20,37 @@ export class TemplatesService {
   }
 
   async syncFromMeta(userId: string) {
-    const metaData = await this.meta.getTemplates();
-    const templates = metaData.data || [];
+    try {
+      const metaData = await this.meta.getTemplates();
+      const templates = metaData.data || [];
+      console.log(`[TemplatesService] Syncing ${templates.length} templates for user ${userId}`);
 
-    const rows = templates.map((t: any) => ({
-      user_id: userId,
-      meta_template_name: t.name,
-      display_name: t.name,
-      category: t.category,
-      language: t.language,
-      body_text: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
-      has_image: t.components?.some((c: any) => c.type === 'HEADER' && c.format === 'IMAGE'),
-      status: t.status?.toLowerCase() || 'pending',
-    }));
+      if (templates.length === 0) return { synced: 0 };
 
-    await this.supabase.client
-      .from('templates')
-      .upsert(rows, { onConflict: 'meta_template_name,user_id' });
+      const rows = templates.map((t: any) => ({
+        user_id: userId,
+        meta_template_name: t.name,
+        display_name: t.name,
+        category: t.category,
+        language: t.language,
+        body_text: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
+        has_image: t.components?.some((c: any) => c.type === 'HEADER' && c.format === 'IMAGE'),
+        status: t.status?.toLowerCase() || 'pending',
+      }));
 
-    return { synced: rows.length };
+      const { error } = await this.supabase.client
+        .from('templates')
+        .upsert(rows, { onConflict: 'meta_template_name,user_id' });
+
+      if (error) {
+        console.error("[TemplatesService] Error upserting templates:", error);
+        throw new Error(error.message);
+      }
+
+      return { synced: rows.length };
+    } catch (err: any) {
+      console.error("[TemplatesService] Sync failed:", err.response?.data || err.message);
+      throw err;
+    }
   }
 }
