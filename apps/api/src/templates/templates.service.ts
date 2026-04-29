@@ -49,7 +49,7 @@ export class TemplatesService {
 
       return { synced: rows.length };
     } catch (err: any) {
-      console.error("[TemplatesService] Sync failed:", err.response?.data || err.message);
+      console.error('META RAW ERROR:', err.response?.data || err.message);
       throw err;
     }
   }

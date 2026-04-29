@@ -56,9 +56,8 @@ export class MetaService {
       this.logger.log(`Mensaje enviado a ${to} — ID: ${data.messages?.[0]?.id}`);
       return data;
     } catch (error: any) {
-      const errorData = error.response?.data || error.message;
-      console.error('META ERROR SENDING:', JSON.stringify(errorData, null, 2));
-      throw new Error(JSON.stringify(errorData));
+      console.error('META RAW ERROR SENDING (META SERVICE):', error.response?.data || error.message);
+      throw error;
     }
   }
 
@@ -71,9 +70,8 @@ export class MetaService {
       console.log(`[MetaService] SUCCESS: Fetched ${data.data?.length || 0} templates`);
       return data;
     } catch (error: any) {
-      const errorData = error.response?.data || error.message;
-      console.error('META ERROR:', JSON.stringify(errorData, null, 2));
-      throw new Error(JSON.stringify(errorData));
+      console.error('META RAW ERROR (META SERVICE):', error.response?.data || error.message);
+      throw error;
     }
   }
 }
