@@ -106,41 +106,58 @@ export class ContactsService {
   }
 
   async importBulk(userId: string, contacts: CreateContactDto[], plan: string = 'free') {
-    if (plan === 'free') {
-      const { count } = await this.supabase.client
+    try {
+      if (plan === 'free') {
+        const { count } = await this.supabase.client
+          .from('contacts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .is('deleted_at', null);
+        
+        const available = 50 - (count || 0);
+        if (available <= 0) {
+          throw new BadRequestException('Límite de 50 contactos alcanzado. Actualiza a PRO.');
+        }
+        if (contacts.length > available) {
+          throw new BadRequestException(`Solo puedes importar ${available} contactos más en el plan FREE.`);
+        }
+      }
+
+      const rows = contacts
+        .map((c) => {
+          const phone_normalized = normalizePhone(c.phone);
+          if (!phone_normalized || !c.name) return null;
+          
+          return {
+            name: String(c.name).trim(),
+            phone: String(c.phone).trim(),
+            phone_normalized,
+            user_id: userId,
+            tags: Array.isArray(c.tags) ? c.tags : [],
+            custom_fields: c.custom_fields || {},
+          };
+        })
+        .filter(Boolean);
+
+      if (rows.length === 0) return { imported: 0 };
+
+      console.log(`[ContactsService] Intentando upsert de ${rows.length} filas`);
+      const { data, error } = await this.supabase.client
         .from('contacts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .is('deleted_at', null);
-      
-      const available = 50 - (count || 0);
-      if (available <= 0) {
-        throw new BadRequestException('Límite de 50 contactos alcanzado. Actualiza a PRO.');
+        .upsert(rows, { onConflict: 'user_id,phone_normalized' })
+        .select();
+
+      if (error) {
+        console.error("[ContactsService] Error de Supabase en importBulk:", error);
+        throw new Error(error.message);
       }
-      if (contacts.length > available) {
-        throw new BadRequestException(`Solo puedes importar ${available} contactos más en el plan FREE.`);
-      }
+
+      return { imported: data?.length ?? 0 };
+    } catch (err: any) {
+      console.error("[ContactsService] Excepción en importBulk:", err);
+      if (err instanceof BadRequestException) throw err;
+      throw new InternalServerErrorException(err.message || 'Error inesperado al importar contactos');
     }
-    const rows = contacts
-      .map((c) => ({
-        ...c,
-        user_id: userId,
-        phone_normalized: normalizePhone(c.phone),
-      }))
-      .filter((r) => r.phone_normalized); // Ignorar si no se pudo normalizar
-
-    if (rows.length === 0) return { imported: 0 };
-
-    const { data, error } = await this.supabase.client
-      .from('contacts')
-      .upsert(rows, { onConflict: 'user_id,phone_normalized' })
-      .select();
-
-    if (error) {
-      console.error("[ContactsService] Error en importBulk:", error);
-      throw new Error(error.message);
-    }
-    return { imported: data?.length ?? 0 };
   }
 
   async update(id: string, userId: string, dto: Partial<CreateContactDto>) {
