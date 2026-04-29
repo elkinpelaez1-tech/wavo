@@ -50,25 +50,30 @@ export class MetaService {
       },
     };
 
-    const { data } = await axios.post(this.baseUrl, payload, { headers: this.headers });
-    this.logger.log(`Mensaje enviado a ${to} — ID: ${data.messages?.[0]?.id}`);
-    return data;
+    try {
+      console.log(`[MetaService] POST: ${this.baseUrl}`);
+      const { data } = await axios.post(this.baseUrl, payload, { headers: this.headers });
+      this.logger.log(`Mensaje enviado a ${to} — ID: ${data.messages?.[0]?.id}`);
+      return data;
+    } catch (error: any) {
+      const errorData = error.response?.data || error.message;
+      console.error('META ERROR SENDING:', JSON.stringify(errorData, null, 2));
+      throw new Error(JSON.stringify(errorData));
+    }
   }
 
   async getTemplates() {
     const url = `https://graph.facebook.com/${process.env.META_API_VERSION || 'v19.0'}/${process.env.META_WABA_ID}/message_templates`;
-    this.logger.log(`Fetching templates from Meta: ${url}`);
+    console.log(`[MetaService] GET: ${url}`);
     
     try {
       const { data } = await axios.get(url, { headers: this.headers });
-      this.logger.log(`Templates fetched successfully: ${data.data?.length || 0} templates found`);
+      console.log(`[MetaService] SUCCESS: Fetched ${data.data?.length || 0} templates`);
       return data;
     } catch (error: any) {
-      this.logger.error(`Error fetching templates from Meta: ${error.response?.data?.error?.message || error.message}`);
-      if (error.response?.data) {
-        this.logger.error("Meta Error Details:", JSON.stringify(error.response.data));
-      }
-      throw error;
+      const errorData = error.response?.data || error.message;
+      console.error('META ERROR:', JSON.stringify(errorData, null, 2));
+      throw new Error(JSON.stringify(errorData));
     }
   }
 }
