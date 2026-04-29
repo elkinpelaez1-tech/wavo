@@ -1,8 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api, { getDashboardMetrics } from '@/lib/api';
+import { getSupabase } from '@/lib/supabase';
+import { useAuthStore } from '@/lib/auth-store';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 
 interface Stats {
   sent_today: number;
@@ -50,6 +53,20 @@ export default function DashboardPage() {
     optouts_week: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { logout: storeLogout } = useAuthStore();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabase();
+      await supabase.auth.signOut();
+      storeLogout(); // This clears the local store and redirects
+    } catch (error) {
+      console.error('Logout error:', error);
+      storeLogout(); // Fallback
+    }
+  };
 
   useEffect(() => {
     getDashboardMetrics().then((data) => {
@@ -78,8 +95,25 @@ export default function DashboardPage() {
           <a href="/dashboard/campaigns/new" className="bg-wavo-green hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-wavo-green/20">
             + Nueva campaña
           </a>
-          <div className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20">
-            WA
+          <div className="relative">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none"
+            >
+              WA
+            </button>
+            
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-[#EDE8D0] rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2.5 text-[13px] text-[#2c2a1e] hover:bg-[#FDFCF5] hover:text-wavo-green transition-colors flex items-center gap-2 font-medium"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
