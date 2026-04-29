@@ -28,6 +28,7 @@ const statusBadge = (s: string) => {
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
     api.get('/campaigns').then(({ data }) => {
@@ -47,8 +48,12 @@ export default function CampaignsPage() {
       alert('Campaña lanzada con éxito');
     } catch (err: any) {
       console.error("[CampaignsPage] Error al lanzar campaña:", err);
-      const msg = err.response?.data?.message || 'Error al lanzar';
-      alert(`Error al lanzar: ${msg}`);
+      const msg = err.response?.data?.message || err.message || 'Error al lanzar';
+      if (msg.toLowerCase().includes('límite') || msg.toLowerCase().includes('plan free')) {
+        setShowUpgrade(true);
+      } else {
+        alert(`Error al lanzar: ${msg}`);
+      }
     }
   };
 
@@ -122,6 +127,38 @@ export default function CampaignsPage() {
           </table>
         )}
       </div>
+
+      {/* Modal de Upgrade */}
+      {showUpgrade && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-[#FDF8E1] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🚀</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#2c2a1e] mb-2">¡Límite de campañas!</h3>
+              <p className="text-[#908c72] text-sm mb-6 leading-relaxed">
+                Has alcanzado el límite de <span className="font-bold text-[#2c2a1e]">1 campaña activa</span> de tu plan <span className="font-bold text-wavo-green">FREE</span>. 
+                Actualiza a <span className="font-bold text-[#2c2a1e]">PRO</span> para lanzar múltiples campañas simultáneas.
+              </p>
+              <div className="flex flex-col gap-3">
+                <a 
+                  href="/upgrade" 
+                  className="bg-wavo-green hover:bg-[#0F6E56] text-white py-3 rounded-xl font-semibold transition-all shadow-lg shadow-wavo-green/20"
+                >
+                  Actualizar a PRO
+                </a>
+                <button 
+                  onClick={() => setShowUpgrade(false)}
+                  className="text-[#908c72] hover:text-[#2c2a1e] text-sm font-medium py-2"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

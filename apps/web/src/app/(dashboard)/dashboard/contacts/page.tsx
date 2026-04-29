@@ -6,7 +6,7 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', phone: '', tags: '' });
-
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = () =>
@@ -34,7 +34,11 @@ export default function ContactsPage() {
     } catch (err: any) {
       console.error("[ContactsPage] Error al guardar:", err);
       const msg = err.response?.data?.message || err.message || 'Error desconocido';
-      alert(`Error al guardar contacto: ${msg}`);
+      if (msg.toLowerCase().includes('límite') || msg.toLowerCase().includes('plan free')) {
+        setShowUpgrade(true);
+      } else {
+        alert(`Error al guardar contacto: ${msg}`);
+      }
     } finally {
       setSaving(false);
     }
@@ -90,7 +94,11 @@ export default function ContactsPage() {
       load();
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message;
-      alert(`Error al importar: ${msg}`);
+      if (msg.toLowerCase().includes('límite') || msg.toLowerCase().includes('plan free')) {
+        setShowUpgrade(true);
+      } else {
+        alert(`Error al importar: ${msg}`);
+      }
     }
   };
 
@@ -177,6 +185,38 @@ export default function ContactsPage() {
           </table>
         )}
       </div>
+
+      {/* Modal de Upgrade */}
+      {showUpgrade && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-[#FDF8E1] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🚀</span>
+              </div>
+              <h3 className="text-xl font-bold text-[#2c2a1e] mb-2">¡Límite alcanzado!</h3>
+              <p className="text-[#908c72] text-sm mb-6 leading-relaxed">
+                Has alcanzado el límite de tu plan <span className="font-bold text-wavo-green">FREE</span>. 
+                Actualiza a <span className="font-bold text-[#2c2a1e]">PRO</span> para importar contactos ilimitados y lanzar campañas masivas.
+              </p>
+              <div className="flex flex-col gap-3">
+                <a 
+                  href="/upgrade" 
+                  className="bg-wavo-green hover:bg-[#0F6E56] text-white py-3 rounded-xl font-semibold transition-all shadow-lg shadow-wavo-green/20"
+                >
+                  Actualizar a PRO
+                </a>
+                <button 
+                  onClick={() => setShowUpgrade(false)}
+                  className="text-[#908c72] hover:text-[#2c2a1e] text-sm font-medium py-2"
+                >
+                  Seguir con mi plan actual
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
