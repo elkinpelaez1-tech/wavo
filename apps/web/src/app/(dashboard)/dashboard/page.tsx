@@ -112,10 +112,22 @@ export default function DashboardPage() {
           <div className="relative group/avatar">
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none uppercase"
-              title={userEmail || ''}
+              className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none uppercase overflow-hidden"
+              title={userEmail || 'Wavo'}
             >
-              {userEmail ? userEmail[0] : '?'}
+              {userEmail ? (
+                userEmail[0]
+              ) : (
+                <img 
+                  src="/logo.png" 
+                  alt="Wavo" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerText = 'W';
+                  }}
+                />
+              )}
             </button>
             
             {/* Tooltip */}
