@@ -89,6 +89,7 @@ export class CampaignsService {
       .from('campaigns')
       .update(dto)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -97,7 +98,7 @@ export class CampaignsService {
 
   async remove(id: string, userId: string) {
     await this.findOne(id, userId);
-    await this.supabase.client.from('campaigns').delete().eq('id', id);
+    await this.supabase.client.from('campaigns').delete().eq('id', id).eq('user_id', userId);
     return { deleted: true };
   }
 
