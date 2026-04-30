@@ -33,14 +33,14 @@ export class TemplatesService {
         display_name: t.name,
         category: t.category,
         language: t.language,
-        body_text: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
-        has_image: t.components?.some((c: any) => c.type === 'HEADER' && c.format === 'IMAGE'),
+        content: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
+        components: t.components || [],
         status: t.status?.toLowerCase() || 'pending',
       }));
 
       const { error } = await this.supabase.client
         .from('templates')
-        .upsert(rows, { onConflict: 'meta_template_name,user_id' });
+        .upsert(rows, { onConflict: 'meta_template_name' });
 
       if (error) {
         console.error("[TemplatesService] Error upserting templates:", error);
