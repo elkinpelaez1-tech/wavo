@@ -41,7 +41,7 @@ export class MetaService {
 
     const payload = {
       messaging_product: 'whatsapp',
-      to,
+      to: to.replace(/\D/g, ''),
       type: 'template',
       template: {
         name: templateName,
@@ -51,6 +51,7 @@ export class MetaService {
     };
 
     try {
+      console.log(`[MetaService] Enviando Payload a WhatsApp:`, JSON.stringify(payload, null, 2));
       console.log(`[MetaService] POST: ${this.baseUrl}`);
       const { data } = await axios.post(this.baseUrl, payload, { headers: this.headers });
       this.logger.log(`Mensaje enviado a ${to} — ID: ${data.messages?.[0]?.id}`);

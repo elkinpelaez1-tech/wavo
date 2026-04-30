@@ -184,6 +184,7 @@ export class CampaignsService {
       const customFields = contact?.custom_fields || {};
       const bodyVars = Object.values(customFields).map(String);
 
+      console.log(`[CampaignsService] Encolando mensaje para: ${phone} (ID: ${log.contact_id})`);
       await this.producer.enqueue(
         log.contact_id,
         campaign.id,
