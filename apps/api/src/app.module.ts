@@ -11,6 +11,7 @@ import { MetaModule } from './meta/meta.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { QueueModule } from './queue/queue.module';
 import { getRedisConnection } from './queue/redis.config';
+import { WorkerModule } from './workers/worker.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { getRedisConnection } from './queue/redis.config';
     WebhooksModule,
     MetaModule,
     QueueModule,
+    WorkerModule,
   ],
 })
 export class AppModule {}

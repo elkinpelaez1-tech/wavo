@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { MessageProducer } from '../queue/message.producer';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
+import { MetaService } from '../meta/meta.service';
 
 @Injectable()
 export class CampaignsService {
@@ -12,6 +13,7 @@ export class CampaignsService {
   constructor(
     private supabase: SupabaseService,
     private producer: MessageProducer,
+    private metaService: MetaService,
   ) {}
 
   async findAll(userId: string) {
@@ -184,16 +186,56 @@ export class CampaignsService {
       const customFields = contact?.custom_fields || {};
       const bodyVars = Object.values(customFields).map(String);
 
-      console.log(`[CampaignsService] Encolando mensaje para: ${phone} (ID: ${log.contact_id})`);
-      await this.producer.enqueue(
-        log.contact_id,
-        campaign.id,
-        phone,
-        campaign.template_name,
-        bodyVars,
-        campaign.image_url,
-        i * 1000,
-      );
+      console.log(`[CampaignsService] Enviando mensaje directo a Meta para: ${phone} (ID: ${log.contact_id})`);
+      try {
+        const result = await this.metaService.sendTemplate(
+          phone,
+          campaign.template_name,
+          bodyVars,
+          campaign.image_url,
+        );
+
+        const messageId = result.messages?.[0]?.id;
+        this.logger.log(`[CampaignsService] Éxito Meta - Tel: ${phone} - MsgID: ${messageId}`);
+
+        await this.supabase.client
+          .from('campaign_recipients')
+          .update({
+            meta_message_id: messageId,
+            status: 'sent',
+            updated_at: new Date().toISOString(),
+          })
+          .match({ campaign_id: campaign.id, contact_id: log.contact_id });
+
+        // Incrementar contador en campaña
+        const { data: currentCampaign } = await this.supabase.client
+          .from('campaigns')
+          .select('sent_count')
+          .eq('id', campaign.id)
+          .single();
+
+        await this.supabase.client
+          .from('campaigns')
+          .update({ sent_count: (currentCampaign?.sent_count || 0) + 1 })
+          .eq('id', campaign.id);
+      } catch (error: any) {
+        const errorCode = error.response?.data?.error?.code || 'ERROR';
+        const errorMessage = error.response?.data?.error?.message || error.message;
+        const fullError = error.response?.data || 'No response data';
+
+        this.logger.error(`[CampaignsService] FALLÓ Meta - Tel: ${phone} - Error: ${errorMessage}`);
+        this.logger.error(`[CampaignsService] Detalle completo de Meta: ${JSON.stringify(fullError)}`);
+
+        await this.supabase.client
+          .from('campaign_recipients')
+          .update({
+            status: 'failed',
+            error_code: errorCode.toString(),
+            error_message: errorMessage,
+            updated_at: new Date().toISOString(),
+          })
+          .match({ campaign_id: campaign.id, contact_id: log.contact_id });
+      }
     }
 
     await this.supabase.client
