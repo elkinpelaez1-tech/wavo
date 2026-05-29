@@ -34,7 +34,13 @@ export class MessageWorker extends WorkerHost {
         imageUrl,
       );
 
-      const messageId = result.messages?.[0]?.id;
+      const messageId = result?.messages?.[0]?.id;
+      
+      if (!messageId) {
+        this.logger.error(`[Worker] ERROR CRÍTICO: Meta respondió éxito pero NO devolvió result.messages. Res: ${JSON.stringify(result)}`);
+        throw new Error('Meta aceptó el request pero no generó un message_id. Revisa el payload y logs de MetaService.');
+      }
+
       this.logger.log(`[Worker] Exito Meta - Tel: ${phone} - MsgID: ${messageId}`);
 
       // 2. Actualizar registro en campaign_recipients

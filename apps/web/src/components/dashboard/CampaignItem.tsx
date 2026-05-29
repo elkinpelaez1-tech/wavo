@@ -36,7 +36,7 @@ export function CampaignItem({ campaign }: { campaign: Campaign }) {
           <div className="text-[13px] text-[#2c2a1e] font-semibold group-hover:text-[#1D9E75] transition-colors">{campaign.name}</div>
           {statusBadge(campaign.status)}
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div className="text-[11px] text-[#908c72] flex items-center gap-1.5">
             <span className="flex items-center gap-1">

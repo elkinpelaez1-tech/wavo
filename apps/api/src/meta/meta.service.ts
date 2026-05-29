@@ -25,6 +25,13 @@ export class MetaService {
   ) {
     const components: any[] = [];
 
+    // HARDCODE PRUEBA AISLADA
+    // Forzamos una imagen pública y estable para descartar problemas de URL, solo si se envía una imagen.
+    if (imageUrl) {
+      imageUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png';
+      console.log(`[MetaService] [PRUEBA AISLADA] Usando imagen pública hardcodeada: ${imageUrl}`);
+    }
+
     if (imageUrl) {
       components.push({
         type: 'header',
@@ -51,13 +58,25 @@ export class MetaService {
     };
 
     try {
-      console.log(`[MetaService] Enviando Payload a WhatsApp:`, JSON.stringify(payload, null, 2));
-      console.log(`[MetaService] POST: ${this.baseUrl}`);
+      console.log(`\n[MetaService] ----- INICIO PETICIÓN A META -----`);
+      console.log(`[MetaService] URL completa: ${this.baseUrl}`);
+      console.log(`[MetaService] Phone Number ID: ${process.env.META_PHONE_NUMBER_ID}`);
+      const partialToken = process.env.META_WHATSAPP_TOKEN ? `${process.env.META_WHATSAPP_TOKEN.substring(0, 15)}...${process.env.META_WHATSAPP_TOKEN.slice(-5)}` : 'NO_TOKEN';
+      console.log(`[MetaService] Token parcial: ${partialToken}`);
+      console.log(`[MetaService] Payload exacto:\n${JSON.stringify(payload, null, 2)}`);
+      
       const { data } = await axios.post(this.baseUrl, payload, { headers: this.headers });
+      
+      console.log(`[MetaService] ----- RESPUESTA EXITOSA DE META -----`);
+      console.log(`[MetaService] Response Data completo:\n${JSON.stringify(data, null, 2)}\n`);
+      
       this.logger.log(`Mensaje enviado a ${to} — ID: ${data.messages?.[0]?.id}`);
       return data;
     } catch (error: any) {
-      console.error('META RAW ERROR SENDING (META SERVICE):', error.response?.data || error.message);
+      console.error(`\n[MetaService] ----- ERROR EN PETICIÓN A META -----`);
+      console.error(`[MetaService] HTTP Error Msg:`, error.message);
+      console.error(`[MetaService] error.response?.data completo:\n`, JSON.stringify(error.response?.data, null, 2));
+      console.error(`----------------------------------------------------\n`);
       throw error;
     }
   }

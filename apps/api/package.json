@@ -24,6 +24,7 @@
     "ioredis": "^5.0.0",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
+    "pg": "^8.20.0",
     "reflect-metadata": "^0.1.13",
     "resend": "^2.0.0",
     "rxjs": "^7.0.0"
