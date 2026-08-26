@@ -201,7 +201,7 @@ export class CampaignsService {
         await this.supabase.client
           .from('campaign_recipients')
           .update({
-            meta_message_id: messageId,
+            message_id: messageId,
             status: 'sent',
             updated_at: new Date().toISOString(),
           })
@@ -230,8 +230,7 @@ export class CampaignsService {
           .from('campaign_recipients')
           .update({
             status: 'failed',
-            error_code: errorCode.toString(),
-            error_message: errorMessage,
+            error_message: `[${errorCode}] ${errorMessage}`,
             updated_at: new Date().toISOString(),
           })
           .match({ campaign_id: campaign.id, contact_id: log.contact_id });
