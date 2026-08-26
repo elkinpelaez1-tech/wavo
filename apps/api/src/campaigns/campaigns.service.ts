@@ -117,7 +117,7 @@ export class CampaignsService {
       }
     }
     const campaign = await this.findOne(id, userId);
-    if (!['draft', 'scheduled'].includes(campaign.status))
+    if (!['draft', 'scheduled', 'failed'].includes(campaign.status))
       throw new BadRequestException('La campaña no puede lanzarse en su estado actual');
 
     // BLOQUEO: No permitir lanzamiento sin template
