@@ -18,13 +18,13 @@ export default function Sidebar() {
   return (
     <aside className="w-[200px] bg-wavo-green py-5 flex flex-col shrink-0">
       {/* Logo */}
-      <div className="px-5 pb-6 flex items-center gap-2">
-        <div className="flex items-end gap-[2px] h-[22px]">
-          <span className="block w-1 rounded-sm h-[10px] bg-white"></span>
-          <span className="block w-1 rounded-sm h-[16px] bg-white"></span>
-          <span className="block w-1 rounded-sm h-[22px] bg-white"></span>
-        </div>
-        <span className="text-[18px] font-extrabold text-white tracking-tight">wavo</span>
+      <div className="px-5 pb-6 flex items-center gap-2.5">
+        <img 
+          src="/logo.png" 
+          alt="Wavo" 
+          className="w-8 h-8 object-cover object-top" 
+        />
+        <span className="text-[19px] font-black text-white tracking-tight">wavo</span>
       </div>
 
       {/* Nav */}
