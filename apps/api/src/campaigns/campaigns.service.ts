@@ -42,10 +42,26 @@ export class CampaignsService {
       const { contact_ids, ...campaignData } = dto;
       console.log("[CampaignsService] Creando campaña:", { userId, name: dto.name, recipients: contact_ids.length });
 
+      // Obtener el idioma real de la plantilla sincronizada
+      let templateLanguage = 'es';
+      if (dto.template_name) {
+        const { data: template } = await this.supabase.client
+          .from('templates')
+          .select('language')
+          .eq('meta_template_name', dto.template_name)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (template?.language) {
+          templateLanguage = template.language;
+        }
+      }
+
       const { data: campaign, error } = await this.supabase.client
         .from('campaigns')
         .insert({
           ...campaignData,
+          template_language: templateLanguage,
           user_id: userId,
           status: dto.scheduled_at ? 'scheduled' : 'draft',
           total_recipients: contact_ids.length,
