@@ -62,13 +62,12 @@ export class ContactsService {
         throw new Error(`El teléfono recibido ("${dto?.phone}") no es válido después de la normalización.`);
       }
 
-      // Verificar duplicados manualmente para dar error claro
+      // Verificar si ya existe el contacto (activo o eliminado)
       const { data: existing, error: checkError } = await this.supabase.client
         .from('contacts')
-        .select('id')
+        .select('id, deleted_at')
         .eq('user_id', userId)
         .eq('phone_normalized', phoneNormalized)
-        .is('deleted_at', null)
         .maybeSingle();
 
       if (checkError) {
@@ -76,7 +75,29 @@ export class ContactsService {
       }
 
       if (existing) {
-        throw new ConflictException('Ya existe un contacto con este número');
+        if (existing.deleted_at === null) {
+          throw new ConflictException('Ya existe un contacto con este número');
+        } else {
+          console.log("[ContactsService] Reactivando contacto previamente eliminado:", existing.id);
+          const { data: reactivated, error: reactivateError } = await this.supabase.client
+            .from('contacts')
+            .update({
+              name: dto.name,
+              phone: dto.phone,
+              deleted_at: null,
+              opted_out: false,
+              tags: dto.tags || [],
+              custom_fields: dto.custom_fields || {},
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+          if (reactivateError) {
+            throw new Error(`DB Error (Reactivate): ${reactivateError.message}`);
+          }
+          return reactivated;
+        }
       }
 
       const { data, error } = await this.supabase.client
