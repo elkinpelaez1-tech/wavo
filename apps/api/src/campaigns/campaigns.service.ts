@@ -209,6 +209,7 @@ export class CampaignsService {
           campaign.template_name,
           bodyVars,
           campaign.image_url,
+          campaign.template_language,
         );
 
         const messageId = result.messages?.[0]?.id;
