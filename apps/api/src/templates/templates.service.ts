@@ -58,11 +58,12 @@ export class TemplatesService {
 
       // Eliminar plantillas obsoletas (las que ya no vienen de Meta para este usuario)
       const currentNames = templates.map((t: any) => t.name);
+      const formattedNames = `(${currentNames.join(',')})`;
       const { error: deleteError } = await this.supabase.client
         .from('templates')
         .delete()
         .eq('user_id', userId)
-        .not('meta_template_name', 'in', currentNames);
+        .not('meta_template_name', 'in', formattedNames);
 
       if (deleteError) {
         console.error("[TemplatesService] Error deleting stale templates:", deleteError);
