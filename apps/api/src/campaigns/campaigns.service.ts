@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, HttpException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -52,9 +52,12 @@ export class CampaignsService {
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (template?.language) {
-          templateLanguage = template.language;
+        if (!template?.language) {
+          throw new BadRequestException(
+            `La plantilla "${dto.template_name}" no existe o no ha sido sincronizada desde Meta.`
+          );
         }
+        templateLanguage = template.language;
       }
 
       const { data: campaign, error } = await this.supabase.client
@@ -93,6 +96,7 @@ export class CampaignsService {
 
       return campaign;
     } catch (err: any) {
+      if (err instanceof HttpException) throw err;
       console.error("[CampaignsService] Error en create:", err);
       throw new InternalServerErrorException(err.message || 'Error al crear campaña');
     }
