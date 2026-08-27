@@ -25,7 +25,16 @@ export class TemplatesService {
       const templates = metaData.data || [];
       console.log(`[TemplatesService] Syncing ${templates.length} templates for user ${userId}`);
 
-      if (templates.length === 0) return { synced: 0 };
+      if (templates.length === 0) {
+        const { error: clearError } = await this.supabase.client
+          .from('templates')
+          .delete()
+          .eq('user_id', userId);
+        if (clearError) {
+          console.error("[TemplatesService] Error clearing templates:", clearError);
+        }
+        return { synced: 0 };
+      }
 
       const rows = templates.map((t: any) => ({
         user_id: userId,
@@ -38,13 +47,25 @@ export class TemplatesService {
         status: t.status?.toLowerCase() || 'pending',
       }));
 
-      const { error } = await this.supabase.client
+      const { error: upsertError } = await this.supabase.client
         .from('templates')
         .upsert(rows, { onConflict: 'meta_template_name' });
 
-      if (error) {
-        console.error("[TemplatesService] Error upserting templates:", error);
-        throw new Error(error.message);
+      if (upsertError) {
+        console.error("[TemplatesService] Error upserting templates:", upsertError);
+        throw new Error(upsertError.message);
+      }
+
+      // Eliminar plantillas obsoletas (las que ya no vienen de Meta para este usuario)
+      const currentNames = templates.map((t: any) => t.name);
+      const { error: deleteError } = await this.supabase.client
+        .from('templates')
+        .delete()
+        .eq('user_id', userId)
+        .not('meta_template_name', 'in', currentNames);
+
+      if (deleteError) {
+        console.error("[TemplatesService] Error deleting stale templates:", deleteError);
       }
 
       return { synced: rows.length };
