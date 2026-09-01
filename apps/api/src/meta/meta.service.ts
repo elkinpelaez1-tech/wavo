@@ -25,13 +25,6 @@ export class MetaService {
   ) {
     const components: any[] = [];
 
-    // HARDCODE PRUEBA AISLADA
-    // Forzamos una imagen pública y estable para descartar problemas de URL, solo si se envía una imagen.
-    if (imageUrl) {
-      imageUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png';
-      console.log(`[MetaService] [PRUEBA AISLADA] Usando imagen pública hardcodeada: ${imageUrl}`);
-    }
-
     if (imageUrl) {
       components.push({
         type: 'header',
