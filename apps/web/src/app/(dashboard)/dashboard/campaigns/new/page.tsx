@@ -185,16 +185,20 @@ export default function NewCampaignPage() {
     }
 
     setSaving(true);
-    setError('');
-
     try {
-      const payload = {
+      const payload: any = {
         name: form.name.trim(),
         template_name: form.template_name,
-        image_url: messageType === 'image' ? form.image_url : '',
-        scheduled_at: sendMode === 'schedule' ? form.scheduled_at : '',
         contact_ids: selected,
       };
+
+      if (messageType === 'image' && form.image_url) {
+        payload.image_url = form.image_url;
+      }
+
+      if (sendMode === 'schedule' && form.scheduled_at) {
+        payload.scheduled_at = new Date(form.scheduled_at).toISOString();
+      }
 
       // 1. Crear campaña
       const { data: createdCampaign } = await api.post('/campaigns', payload);
