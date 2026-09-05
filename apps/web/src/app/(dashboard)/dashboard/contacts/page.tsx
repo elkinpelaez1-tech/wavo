@@ -55,41 +55,78 @@ export default function ContactsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Reset file input so re-selecting same file triggers onChange
+    e.target.value = '';
+
     const text = await file.text();
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (lines.length < 2) return;
+    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line !== '');
+    if (lines.length === 0) return;
 
-    // Detectar delimitador (el que más aparezca en la cabecera)
-    const header = lines[0];
-    const commaCount = (header.match(/,/g) || []).length;
-    const semiCount = (header.match(/;/g) || []).length;
-    const delimiter = semiCount > commaCount ? ';' : ',';
+    // Detectar delimitador (el que más aparezca en la primera línea)
+    const firstLine = lines[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semiCount = (firstLine.match(/;/g) || []).length;
+    const tabCount = (firstLine.match(/\t/g) || []).length;
 
-    const columns = header.split(delimiter).map(c => c.trim().toLowerCase());
-    
-    // Mapeo flexible
-    const nameIdx = columns.findIndex(c => c.includes('name') || c.includes('nombre'));
-    const phoneIdx = columns.findIndex(c => c.includes('phone') || c.includes('telefono') || c.includes('teléfono'));
-    const tagIdx = columns.findIndex(c => c.includes('tag') || c.includes('etiqueta'));
-
-    if (nameIdx === -1 || phoneIdx === -1) {
-      alert('No se encontraron las columnas de Nombre y Teléfono. Verifica el encabezado.');
-      return;
+    let delimiter = ',';
+    if (semiCount >= commaCount && semiCount >= tabCount && semiCount > 0) {
+      delimiter = ';';
+    } else if (tabCount >= commaCount && tabCount >= semiCount && tabCount > 0) {
+      delimiter = '\t';
     }
 
-    const contacts = lines.slice(1).map(line => {
-      const values = line.split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, ''));
-      const tagsValue = tagIdx !== -1 ? values[tagIdx] : '';
+    const parseLine = (line: string) => {
+      return line.split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, ''));
+    };
+
+    const firstRowValues = parseLine(firstLine);
+    const firstRowLower = firstRowValues.map(c => c.toLowerCase());
+
+    // Detectar si la primera fila contiene palabras clave de encabezado
+    const hasHeaderName = firstRowLower.some(c => c.includes('name') || c.includes('nombre') || c.includes('contacto'));
+    const hasHeaderPhone = firstRowLower.some(c => c.includes('phone') || c.includes('telefono') || c.includes('teléfono') || c.includes('celular') || c.includes('movil') || c.includes('móvil'));
+
+    const hasHeader = hasHeaderName || hasHeaderPhone;
+
+    let nameIdx = 0;
+    let phoneIdx = 1;
+    let tagIdx = firstRowValues.length > 2 ? 2 : -1;
+    let dataLines = lines;
+
+    if (hasHeader) {
+      // Mapeo por nombre de columna
+      const detectedNameIdx = firstRowLower.findIndex(c => c.includes('name') || c.includes('nombre') || c.includes('contacto'));
+      const detectedPhoneIdx = firstRowLower.findIndex(c => c.includes('phone') || c.includes('telefono') || c.includes('teléfono') || c.includes('celular') || c.includes('movil') || c.includes('móvil'));
+      const detectedTagIdx = firstRowLower.findIndex(c => c.includes('tag') || c.includes('etiqueta') || c.includes('categoria') || c.includes('categoría'));
+
+      if (detectedNameIdx !== -1) nameIdx = detectedNameIdx;
+      if (detectedPhoneIdx !== -1) phoneIdx = detectedPhoneIdx;
+      if (detectedTagIdx !== -1) tagIdx = detectedTagIdx;
+
+      // Descartar la fila de encabezado
+      dataLines = lines.slice(1);
+    }
+
+    const parsedContacts = dataLines.map(line => {
+      const values = parseLine(line);
+      const name = values[nameIdx] || '';
+      const phone = values[phoneIdx] || '';
+      const tagsValue = tagIdx !== -1 && values[tagIdx] ? values[tagIdx] : '';
       
       return {
-        name: values[nameIdx],
-        phone: values[phoneIdx],
+        name,
+        phone,
         tags: tagsValue ? tagsValue.split(/[|,-]/).map(t => t.trim()).filter(Boolean) : []
       };
     }).filter(c => c.name && c.phone);
 
+    if (parsedContacts.length === 0) {
+      alert('No se encontraron contactos válidos en el archivo CSV. Verifica el formato.');
+      return;
+    }
+
     try {
-      const { data } = await api.post('/contacts/import', { contacts });
+      const { data } = await api.post('/contacts/import', { contacts: parsedContacts });
       alert(`${data.imported} contactos importados con éxito`);
       load();
     } catch (err: any) {
