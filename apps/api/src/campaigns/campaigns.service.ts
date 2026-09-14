@@ -17,13 +17,47 @@ export class CampaignsService {
   ) {}
 
   async findAll(userId: string) {
-    const { data, error } = await this.supabase.client
+    const { data: campaigns, error } = await this.supabase.client
       .from('campaigns')
-      .select('*')
+      .select(`
+        *,
+        campaign_recipients (
+          status
+        )
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
     if (error) throw new Error(error.message);
-    return data;
+
+    return (campaigns || []).map((c: any) => {
+      const recipients = c.campaign_recipients || [];
+      const rawStats = { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
+      recipients.forEach((r: any) => {
+        if (rawStats[r.status] !== undefined) rawStats[r.status]++;
+      });
+
+      const sentCount = c.sent_count > 0 ? c.sent_count : (rawStats.sent + rawStats.delivered + rawStats.read);
+      const deliveredCount = rawStats.delivered + rawStats.read;
+      const readCount = rawStats.read;
+      const failedCount = rawStats.failed;
+
+      const { campaign_recipients: _, ...rest } = c;
+      return {
+        ...rest,
+        sent_count: sentCount,
+        delivered_count: deliveredCount,
+        read_count: readCount,
+        failed_count: failedCount,
+        stats: {
+          pending: rawStats.pending,
+          sent: sentCount,
+          delivered: deliveredCount,
+          read: readCount,
+          failed: failedCount,
+        },
+      };
+    });
   }
 
   async findOne(id: string, userId: string) {
@@ -160,10 +194,30 @@ export class CampaignsService {
       .select('status')
       .eq('campaign_id', id);
 
-    const stats = { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
-    logs?.forEach((l) => { if (stats[l.status] !== undefined) stats[l.status]++; });
+    const rawStats = { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
+    logs?.forEach((l: any) => {
+      if (rawStats[l.status] !== undefined) rawStats[l.status]++;
+    });
 
-    return { ...campaign, stats };
+    const sentCount = campaign.sent_count > 0 ? campaign.sent_count : (rawStats.sent + rawStats.delivered + rawStats.read);
+    const deliveredCount = rawStats.delivered + rawStats.read;
+    const readCount = rawStats.read;
+    const failedCount = rawStats.failed;
+
+    return {
+      ...campaign,
+      sent_count: sentCount,
+      delivered_count: deliveredCount,
+      read_count: readCount,
+      failed_count: failedCount,
+      stats: {
+        pending: rawStats.pending,
+        sent: sentCount,
+        delivered: deliveredCount,
+        read: readCount,
+        failed: failedCount,
+      },
+    };
   }
 
   @Cron(CronExpression.EVERY_MINUTE)

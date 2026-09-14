@@ -29,28 +29,55 @@ export class WebhooksService {
   }
 
   private async handleStatus(status: MessageStatus) {
-    this.logger.log(`📨 ${status.id} → ${status.status}`);
-    
+    this.logger.log(`📨 Webhook status: ${status.id} → ${status.status}`);
+
+    const { data: current, error: fetchError } = await this.supabase.client
+      .from('campaign_recipients')
+      .select('id, status, delivered_at, read_at')
+      .eq('message_id', status.id)
+      .maybeSingle();
+
+    if (fetchError || !current) {
+      this.logger.warn(`No se encontró recipient para message_id: ${status.id}`);
+      return;
+    }
+
+    const statusWeights: Record<string, number> = {
+      pending: 0,
+      sent: 1,
+      delivered: 2,
+      read: 3,
+      failed: 1,
+    };
+
+    const currentWeight = statusWeights[current.status] || 0;
+    const newWeight = statusWeights[status.status] || 0;
+
     const updateData: any = {
-      status: status.status,
       updated_at: new Date().toISOString(),
     };
 
-    if (status.status === 'delivered') {
+    // Solo actualizar el status si es un avance o si es failed
+    if (newWeight >= currentWeight || status.status === 'failed') {
+      updateData.status = status.status;
+    }
+
+    if (status.status === 'delivered' && !current.delivered_at) {
       updateData.delivered_at = new Date().toISOString();
     } else if (status.status === 'read') {
-      updateData.read_at = new Date().toISOString();
+      if (!current.read_at) updateData.read_at = new Date().toISOString();
+      if (!current.delivered_at) updateData.delivered_at = new Date().toISOString();
     }
 
     if (status.errors?.length) {
-      updateData.error_code = status.errors[0].code.toString();
-      updateData.error_message = status.errors[0].title;
+      const err: any = status.errors[0];
+      updateData.error_message = `[${err.code || 'ERR'}] ${err.title || err.message || 'Error'}`;
     }
 
     await this.supabase.client
-      .from('message_logs')
+      .from('campaign_recipients')
       .update(updateData)
-      .eq('meta_message_id', status.id);
+      .eq('id', current.id);
   }
 
   private async handleIncoming(message: IncomingMessage) {

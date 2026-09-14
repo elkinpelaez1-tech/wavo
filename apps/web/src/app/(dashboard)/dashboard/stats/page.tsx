@@ -16,23 +16,26 @@ export default function StatsPage() {
 
   const chartData = campaigns.slice(0, 6).map((c) => ({
     name: c.name.length > 14 ? c.name.slice(0, 14) + '…' : c.name,
-    enviados: c.sent_count,
-    entregados: c.delivered_count,
-    leídos: c.read_count,
+    enviados: Number(c.sent_count) || 0,
+    entregados: Number(c.delivered_count) || 0,
+    leídos: Number(c.read_count) || 0,
   }));
 
   const totals = campaigns.reduce(
     (acc, c) => ({
-      sent: acc.sent + (c.sent_count || 0),
-      delivered: acc.delivered + (c.delivered_count || 0),
-      read: acc.read + (c.read_count || 0),
-      failed: acc.failed + (c.failed_count || 0),
+      sent: acc.sent + (Number(c.sent_count) || 0),
+      delivered: acc.delivered + (Number(c.delivered_count) || 0),
+      read: acc.read + (Number(c.read_count) || 0),
+      failed: acc.failed + (Number(c.failed_count) || 0),
     }),
     { sent: 0, delivered: 0, read: 0, failed: 0 },
   );
 
-  const pct = (n: number, d: number) =>
-    d > 0 ? ((n / d) * 100).toFixed(1) + '%' : '—';
+  const pct = (n: number | undefined | null, d: number | undefined | null) => {
+    const num = Number(n) || 0;
+    const den = Number(d) || 0;
+    return den > 0 ? ((num / den) * 100).toFixed(1) + '%' : '—';
+  };
 
   return (
     <div>
@@ -96,9 +99,9 @@ export default function StatsPage() {
             {campaigns.map((c) => (
               <tr key={c.id} className="hover:bg-wavo-sidebar">
                 <td className="py-2 px-2 text-wavo-text font-medium">{c.name}</td>
-                <td className="py-2 px-2 text-wavo-muted">{c.sent_count}</td>
-                <td className="py-2 px-2 text-wavo-muted">{c.delivered_count}</td>
-                <td className="py-2 px-2 text-wavo-muted">{c.read_count}</td>
+                <td className="py-2 px-2 text-wavo-muted">{c.sent_count ?? 0}</td>
+                <td className="py-2 px-2 text-wavo-muted">{c.delivered_count ?? 0}</td>
+                <td className="py-2 px-2 text-wavo-muted">{c.read_count ?? 0}</td>
                 <td className="py-2 px-2 text-wavo-green font-medium">{pct(c.delivered_count, c.sent_count)}</td>
                 <td className="py-2 px-2 text-wavo-green font-medium">{pct(c.read_count, c.delivered_count)}</td>
               </tr>

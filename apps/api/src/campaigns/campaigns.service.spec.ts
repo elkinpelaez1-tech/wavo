@@ -22,6 +22,8 @@ describe('CampaignsService', () => {
       single: jest.fn().mockImplementation(() => Promise.resolve({ data: null, error: null })),
       update: jest.fn().mockReturnThis(),
       match: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
       then: jest.fn((resolve) => resolve({ data: [], error: null })),
     };
 
@@ -165,6 +167,81 @@ describe('CampaignsService', () => {
         null,
         'en_US'
       );
+    });
+  });
+
+  describe('findAll and getStats metrics calculation', () => {
+    it('should aggregate delivered_count = delivered + read and read_count = read in findAll', async () => {
+      supabaseClientMock.then.mockImplementation((resolve: any) => {
+        resolve({
+          data: [
+            {
+              id: 'c1',
+              name: 'Campaign 1',
+              sent_count: 3,
+              campaign_recipients: [
+                { status: 'sent' },
+                { status: 'delivered' },
+                { status: 'read' },
+              ],
+            },
+          ],
+          error: null,
+        });
+      });
+
+      const results = await service.findAll('user-1');
+
+      expect(results[0].sent_count).toBe(3);
+      expect(results[0].delivered_count).toBe(2); // 1 delivered + 1 read
+      expect(results[0].read_count).toBe(1);      // 1 read
+      expect(results[0].stats).toEqual({
+        pending: 0,
+        sent: 3,
+        delivered: 2,
+        read: 1,
+        failed: 0,
+      });
+    });
+
+    it('should calculate stats correctly in getStats', async () => {
+      // Mock findOne
+      supabaseClientMock.single.mockResolvedValue({
+        data: {
+          id: 'c1',
+          name: 'Campaign 1',
+          sent_count: 4,
+          user_id: 'user-1',
+        },
+        error: null,
+      });
+
+      // Mock campaign_recipients query
+      supabaseClientMock.then.mockImplementation((resolve: any) => {
+        resolve({
+          data: [
+            { status: 'sent' },
+            { status: 'delivered' },
+            { status: 'read' },
+            { status: 'failed' },
+          ],
+          error: null,
+        });
+      });
+
+      const result = await service.getStats('c1', 'user-1');
+
+      expect(result.sent_count).toBe(4);
+      expect(result.delivered_count).toBe(2); // 1 delivered + 1 read
+      expect(result.read_count).toBe(1);
+      expect(result.failed_count).toBe(1);
+      expect(result.stats).toEqual({
+        pending: 0,
+        sent: 4,
+        delivered: 2,
+        read: 1,
+        failed: 1,
+      });
     });
   });
 });
