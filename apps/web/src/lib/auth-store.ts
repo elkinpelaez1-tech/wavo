@@ -7,6 +7,7 @@ interface User {
   name: string;
   business_name: string;
   plan: string;
+  created_at?: string;
 }
 
 interface AuthStore {
@@ -17,6 +18,12 @@ interface AuthStore {
   register: (data: any) => Promise<void>;
   logout: () => void;
   loadUser: () => Promise<void>;
+  updateProfile: (data: {
+    name?: string;
+    business_name?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => Promise<User>;
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -68,6 +75,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ user: data });
     } catch {
       localStorage.removeItem('wavo_token');
+    }
+  },
+
+  updateProfile: async (data) => {
+    try {
+      const response = await api.patch('/auth/me', data);
+      set({ user: response.data });
+      return response.data;
+    } catch (error: any) {
+      console.error('Update Profile Error:', error.response?.data || error.message);
+      throw error;
     }
   },
 }));

@@ -163,9 +163,17 @@ export default function DashboardPage() {
             
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-[#EDE8D0] rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <a
+                  href="/dashboard/profile"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-left px-4 py-2.5 text-[13px] text-[#2c2a1e] hover:bg-[#FDFCF5] hover:text-wavo-green transition-colors flex items-center gap-2 font-medium border-b border-[#EDE8D0]/60"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  Mi perfil
+                </a>
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2.5 text-[13px] text-[#2c2a1e] hover:bg-[#FDFCF5] hover:text-wavo-green transition-colors flex items-center gap-2 font-medium"
+                  className="w-full text-left px-4 py-2.5 text-[13px] text-[#2c2a1e] hover:bg-[#FDFCF5] hover:text-red-600 transition-colors flex items-center gap-2 font-medium"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                   Cerrar sesión
