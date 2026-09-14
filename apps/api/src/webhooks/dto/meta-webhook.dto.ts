@@ -29,4 +29,12 @@ export interface IncomingMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
+  context?: { id: string; from?: string };
+  button?: { text: string; payload?: string };
+  interactive?: {
+    type: string;
+    button_reply?: { id: string; title: string };
+    list_reply?: { id: string; title: string };
+  };
+  [key: string]: any;
 }
