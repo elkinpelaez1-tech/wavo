@@ -1,9 +1,17 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/lib/auth-store';
 
 export default function ProfilePage() {
-  const { user, updateProfile } = useAuthStore();
+  const { user, updateProfile, uploadAvatar } = useAuthStore();
+
+  // Gestión de Foto de perfil / Logo
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [avatarSuccess, setAvatarSuccess] = useState('');
+  const [avatarError, setAvatarError] = useState('');
 
   // Formulario de Información de Cuenta
   const [accountForm, setAccountForm] = useState({
@@ -108,6 +116,69 @@ export default function ProfilePage() {
     }
   };
 
+  // Manejador para selección de archivo de avatar
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError('');
+    setAvatarSuccess('');
+
+    // Validar tipo (JPG, PNG, WEBP)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setAvatarError('Formato no permitido. Solo se aceptan archivos JPG, PNG o WEBP.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validar tamaño máximo (2 MB)
+    const maxSizeBytes = 2 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      setAvatarError('La imagen excede el tamaño máximo permitido de 2 MB.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCancelAvatar = () => {
+    setSelectedFile(null);
+    setPreview(null);
+    setAvatarError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSaveAvatar = async () => {
+    if (!selectedFile) return;
+
+    setSavingAvatar(true);
+    setAvatarError('');
+    setAvatarSuccess('');
+
+    try {
+      await uploadAvatar(selectedFile);
+      setAvatarSuccess('Foto de perfil / Logo actualizada exitosamente');
+      setSelectedFile(null);
+      setPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setTimeout(() => setAvatarSuccess(''), 4000);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Error al subir la imagen';
+      setAvatarError(msg);
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
+  const userInitial = user?.name ? user.name[0] : user?.email ? user.email[0] : 'W';
+
   // Formato de fecha de registro
   const formattedDate = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('es-ES', {
@@ -129,6 +200,91 @@ export default function ProfilePage() {
       </div>
 
       <div className="space-y-6">
+        {/* Bloque 1: Foto de perfil / Logo */}
+        <div className="card space-y-4">
+          <div className="border-b border-wavo-border/60 pb-3">
+            <h2 className="text-sm font-semibold text-wavo-text">Foto de perfil / Logo</h2>
+            <p className="text-xs text-wavo-muted mt-0.5">
+              Personaliza tu imagen de perfil o el logo de tu empresa.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            {/* Contenedor del Avatar */}
+            <div className="w-20 h-20 rounded-full bg-[#E1F5EE] text-[#0F6E56] text-2xl font-bold border-2 border-[#1D9E75]/30 shadow-sm overflow-hidden flex items-center justify-center shrink-0 uppercase relative">
+              {preview ? (
+                <img src={preview} alt="Vista previa" className="w-full h-full object-cover" />
+              ) : user?.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name || user.email} className="w-full h-full object-cover" />
+              ) : (
+                <span>{userInitial}</span>
+              )}
+            </div>
+
+            {/* Acciones e instrucciones */}
+            <div className="flex-1 space-y-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-white border border-[#EDE8D0] text-[#2c2a1e] px-4 py-2 rounded-lg text-xs font-medium hover:bg-[#FDFCF5] hover:border-[#1D9E75] transition-colors shadow-sm cursor-pointer"
+                  disabled={savingAvatar}
+                >
+                  {selectedFile ? 'Elegir otra imagen' : 'Cambiar imagen'}
+                </button>
+
+                {selectedFile && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSaveAvatar}
+                      className="btn-primary text-xs py-2 px-4 shadow-sm"
+                      disabled={savingAvatar}
+                    >
+                      {savingAvatar ? 'Guardando imagen...' : 'Guardar imagen'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCancelAvatar}
+                      className="text-xs text-wavo-muted hover:text-red-600 transition-colors px-2 py-1"
+                      disabled={savingAvatar}
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <p className="text-[11px] text-wavo-muted">
+                Formatos permitidos: JPG, PNG o WEBP. Tamaño máximo: 2 MB.
+              </p>
+            </div>
+          </div>
+
+          {avatarError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{avatarError}</span>
+            </div>
+          )}
+
+          {avatarSuccess && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2">
+              <span>✅</span>
+              <span>{avatarSuccess}</span>
+            </div>
+          )}
+        </div>
+
         {/* Bloque A: Información de la cuenta */}
         <div className="card space-y-4">
           <div className="flex items-center justify-between border-b border-wavo-border/60 pb-3">

@@ -43,9 +43,15 @@ export default function Header() {
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none uppercase overflow-hidden"
-          title={user?.email || 'Wavo'}
+          title={user?.name || user?.email || 'Wavo'}
         >
-          {user?.email ? (
+          {user?.avatar_url ? (
+            <img
+              src={user.avatar_url}
+              alt={user.name || user.email || 'Avatar'}
+              className="w-full h-full object-cover"
+            />
+          ) : user?.email ? (
             userInitial
           ) : (
             <img

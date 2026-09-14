@@ -1,4 +1,15 @@
-import { Controller, Post, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  Request,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -11,7 +22,7 @@ export class AuthController {
   ping() {
     return {
       status: 'ok',
-      frontend_url: process.env.FRONTEND_URL || 'NOT_SET'
+      frontend_url: process.env.FRONTEND_URL || 'NOT_SET',
     };
   }
 
@@ -36,5 +47,12 @@ export class AuthController {
   @Patch('me')
   updateProfile(@Request() req, @Body() dto: UpdateProfileDto) {
     return this.auth.updateProfile(req.user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadAvatar(@Request() req, @UploadedFile() file: any) {
+    return this.auth.uploadAvatar(req.user.id, file);
   }
 }

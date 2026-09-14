@@ -7,6 +7,7 @@ interface User {
   name: string;
   business_name: string;
   plan: string;
+  avatar_url?: string | null;
   created_at?: string;
 }
 
@@ -24,6 +25,7 @@ interface AuthStore {
     currentPassword?: string;
     newPassword?: string;
   }) => Promise<User>;
+  uploadAvatar: (file: File) => Promise<User>;
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -85,6 +87,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return response.data;
     } catch (error: any) {
       console.error('Update Profile Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  uploadAvatar: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post('/auth/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      set({ user: response.data });
+      return response.data;
+    } catch (error: any) {
+      console.error('Upload Avatar Error:', error.response?.data || error.message);
       throw error;
     }
   },
