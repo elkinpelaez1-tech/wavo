@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationsService } from './conversations.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import { NotFoundException } from '@nestjs/common';
+import { MetaService } from '../meta/meta.service';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('ConversationsService', () => {
   let service: ConversationsService;
   let supabaseClientMock: any;
+  let metaServiceMock: any;
 
   const mockUser = 'user-uuid-123';
   const mockConversation = {
@@ -39,6 +41,7 @@ describe('ConversationsService', () => {
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
       maybeSingle: jest.fn(),
       single: jest.fn(),
       then: jest.fn((resolve) => resolve({ data: [mockConversation], error: null })),
@@ -48,10 +51,19 @@ describe('ConversationsService', () => {
       client: supabaseClientMock,
     };
 
+    metaServiceMock = {
+      sendText: jest.fn().mockResolvedValue({
+        messaging_product: 'whatsapp',
+        contacts: [{ input: '573001234567', wa_id: '573001234567' }],
+        messages: [{ id: 'wamid.outbound-text-123' }],
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConversationsService,
         { provide: SupabaseService, useValue: supabaseServiceMock },
+        { provide: MetaService, useValue: metaServiceMock },
       ],
     }).compile();
 
@@ -183,6 +195,81 @@ describe('ConversationsService', () => {
         })
       );
       expect(result.unread_count).toBe(0);
+    });
+  });
+
+  describe('sendMessage', () => {
+    it('should send text via MetaService and save outbound message', async () => {
+      supabaseClientMock.maybeSingle.mockResolvedValue({
+        data: mockConversation,
+        error: null,
+      });
+
+      const mockCreatedMessage = {
+        id: 'msg-out-1',
+        conversation_id: 'conv-1',
+        direction: 'outbound',
+        body: 'Hola Maria, con gusto te ayudo',
+        status: 'sent',
+        meta_message_id: 'wamid.outbound-text-123',
+      };
+
+      supabaseClientMock.single.mockResolvedValue({
+        data: mockCreatedMessage,
+        error: null,
+      });
+
+      const result = await service.sendMessage('conv-1', mockUser, 'Hola Maria, con gusto te ayudo');
+
+      expect(metaServiceMock.sendText).toHaveBeenCalledWith('573001234567', 'Hola Maria, con gusto te ayudo');
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('messages');
+      expect(supabaseClientMock.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversation_id: 'conv-1',
+          user_id: mockUser,
+          contact_id: 'contact-1',
+          direction: 'outbound',
+          sender_type: 'user',
+          body: 'Hola Maria, con gusto te ayudo',
+          meta_message_id: 'wamid.outbound-text-123',
+          status: 'sent',
+        })
+      );
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('conversations');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          last_message_text: 'Hola Maria, con gusto te ayudo',
+        })
+      );
+      expect(result.id).toBe('msg-out-1');
+    });
+
+    it('should throw BadRequestException if message body is empty', async () => {
+      await expect(service.sendMessage('conv-1', mockUser, '   ')).rejects.toThrow(BadRequestException);
+      expect(metaServiceMock.sendText).not.toHaveBeenCalled();
+    });
+
+    it('should handle 24h window expiration error (131047)', async () => {
+      supabaseClientMock.maybeSingle.mockResolvedValue({
+        data: mockConversation,
+        error: null,
+      });
+
+      const metaError: any = new Error('Request failed');
+      metaError.response = {
+        data: {
+          error: {
+            code: 131047,
+            message: 'Re-engagement message',
+          },
+        },
+      };
+
+      metaServiceMock.sendText.mockRejectedValueOnce(metaError);
+
+      await expect(
+        service.sendMessage('conv-1', mockUser, 'Hola tras 24h')
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

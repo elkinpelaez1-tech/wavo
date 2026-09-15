@@ -56,7 +56,17 @@ export default function ConversationsPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [showMobileDetails, setShowMobileDetails] = useState(false);
+  const [inputBody, setInputBody] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Limpiar errores y campo de texto al cambiar de conversación
+  useEffect(() => {
+    setSendError(null);
+    setInputBody('');
+  }, [selectedId]);
 
   // Cargar lista de conversaciones
   const fetchConversations = async (showLoading = false) => {
@@ -196,6 +206,52 @@ export default function ConversationsPage() {
     });
     return groups;
   }, [messages]);
+
+  // Enviar mensaje en la conversación activa
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const text = inputBody.trim();
+    if (!text || !selectedId || isSending) return;
+
+    setIsSending(true);
+    setSendError(null);
+
+    try {
+      const { data } = await api.post(`/conversations/${selectedId}/messages`, {
+        body: text,
+      });
+
+      // Insertar el mensaje enviado al historial
+      setMessages((prev) => [...prev, data]);
+      setInputBody('');
+
+      // Actualizar la lista lateral de conversaciones
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedId
+            ? {
+                ...c,
+                last_message_text: text,
+                last_message_at: data.created_at || new Date().toISOString(),
+              }
+            : c
+        )
+      );
+
+      // Re-enfocar el textarea
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 50);
+    } catch (err: any) {
+      console.error('Error al responder mensaje:', err);
+      const msg =
+        err.response?.data?.message ||
+        'No se pudo enviar el mensaje a través de WhatsApp. Intenta nuevamente.';
+      setSendError(Array.isArray(msg) ? msg.join(', ') : msg);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-7.5rem)] min-h-[550px] bg-wavo-card rounded-2xl border border-wavo-border overflow-hidden shadow-sm flex flex-col md:flex-row">
@@ -475,10 +531,78 @@ export default function ConversationsPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Banner Informativo Inferior (Modo Solo Lectura - Etapa 1) */}
-            <div className="p-3 bg-wavo-card border-t border-wavo-border flex items-center justify-center gap-2 text-xs text-wavo-muted flex-shrink-0">
-              <span className="inline-block w-2 h-2 rounded-full bg-wavo-green animate-pulse" />
-              <span>Sincronización activa con WhatsApp Cloud API • Historial en tiempo real</span>
+            {/* Compositor de Mensajes - Etapa 2C */}
+            <div className="p-3.5 bg-wavo-card border-t border-wavo-border flex-shrink-0">
+              {sendError && (
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start justify-between gap-2 shadow-2xs">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base leading-none">⚠️</span>
+                    <div>
+                      <p className="font-semibold">No se pudo enviar el mensaje</p>
+                      <p className="mt-0.5 opacity-90 leading-relaxed">{sendError}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSendError(null)}
+                    className="text-red-400 hover:text-red-700 text-sm font-bold px-1"
+                    title="Cerrar advertencia"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {activeConversation.contact?.opted_out ? (
+                <div className="p-3 bg-red-50/80 border border-red-200/80 rounded-xl text-center text-xs text-red-700">
+                  <span className="font-semibold">Contacto con baja registrada (Opt-out).</span> No es posible enviarle nuevos mensajes por políticas de privacidad.
+                </div>
+              ) : (
+                <form onSubmit={handleSendMessage} className="space-y-2">
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      ref={textareaRef}
+                      value={inputBody}
+                      onChange={(e) => setInputBody(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      disabled={isSending}
+                      placeholder="Escribe un mensaje... (Enter para enviar, Shift + Enter para salto de línea)"
+                      rows={Math.min(Math.max(inputBody.split('\n').length, 1), 5)}
+                      className="flex-1 max-h-32 min-h-[44px] py-3 px-3.5 text-xs rounded-xl bg-wavo-sand border border-wavo-border text-wavo-text placeholder-wavo-muted focus:outline-none focus:ring-2 focus:ring-wavo-green resize-none disabled:opacity-60 transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!inputBody.trim() || isSending}
+                      className="btn-primary h-[44px] px-4 flex items-center justify-center gap-1.5 text-xs rounded-xl disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 shadow-2xs"
+                    >
+                      {isSending ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline font-medium">Enviar</span>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-wavo-muted px-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-wavo-green" />
+                      Envío directo vía WhatsApp Cloud API
+                    </span>
+                    <span className="hidden sm:inline opacity-75">
+                      Enter = enviar • Shift + Enter = salto de línea
+                    </span>
+                  </div>
+                </form>
+              )}
             </div>
           </>
         ) : (

@@ -31,17 +31,6 @@ export class WebhooksService {
   private async handleStatus(status: MessageStatus) {
     this.logger.log(`📨 Webhook status: ${status.id} → ${status.status}`);
 
-    const { data: current, error: fetchError } = await this.supabase.client
-      .from('campaign_recipients')
-      .select('id, status, delivered_at, read_at')
-      .eq('message_id', status.id)
-      .maybeSingle();
-
-    if (fetchError || !current) {
-      this.logger.warn(`No se encontró recipient para message_id: ${status.id}`);
-      return;
-    }
-
     const statusWeights: Record<string, number> = {
       pending: 0,
       sent: 1,
@@ -50,34 +39,65 @@ export class WebhooksService {
       failed: 1,
     };
 
-    const currentWeight = statusWeights[current.status] || 0;
-    const newWeight = statusWeights[status.status] || 0;
-
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    };
-
-    // Solo actualizar el status si es un avance o si es failed
-    if (newWeight >= currentWeight || status.status === 'failed') {
-      updateData.status = status.status;
-    }
-
-    if (status.status === 'delivered' && !current.delivered_at) {
-      updateData.delivered_at = new Date().toISOString();
-    } else if (status.status === 'read') {
-      if (!current.read_at) updateData.read_at = new Date().toISOString();
-      if (!current.delivered_at) updateData.delivered_at = new Date().toISOString();
-    }
-
-    if (status.errors?.length) {
-      const err: any = status.errors[0];
-      updateData.error_message = `[${err.code || 'ERR'}] ${err.title || err.message || 'Error'}`;
-    }
-
-    await this.supabase.client
+    // 1. Actualizar en campaign_recipients si existe (campañas masivas)
+    const { data: currentRecipient } = await this.supabase.client
       .from('campaign_recipients')
-      .update(updateData)
-      .eq('id', current.id);
+      .select('id, status, delivered_at, read_at')
+      .eq('message_id', status.id)
+      .maybeSingle();
+
+    if (currentRecipient) {
+      const currentWeight = statusWeights[currentRecipient.status] || 0;
+      const newWeight = statusWeights[status.status] || 0;
+
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (newWeight >= currentWeight || status.status === 'failed') {
+        updateData.status = status.status;
+      }
+
+      if (status.status === 'delivered' && !currentRecipient.delivered_at) {
+        updateData.delivered_at = new Date().toISOString();
+      } else if (status.status === 'read') {
+        if (!currentRecipient.read_at) updateData.read_at = new Date().toISOString();
+        if (!currentRecipient.delivered_at) updateData.delivered_at = new Date().toISOString();
+      }
+
+      if (status.errors?.length) {
+        const err: any = status.errors[0];
+        updateData.error_message = `[${err.code || 'ERR'}] ${err.title || err.message || 'Error'}`;
+      }
+
+      await this.supabase.client
+        .from('campaign_recipients')
+        .update(updateData)
+        .eq('id', currentRecipient.id);
+    }
+
+    // 2. Actualizar en messages si existe (mensajes de chat 1-a-1)
+    const { data: currentMessage } = await this.supabase.client
+      .from('messages')
+      .select('id, status')
+      .eq('meta_message_id', status.id)
+      .maybeSingle();
+
+    if (currentMessage) {
+      const currentMsgWeight = statusWeights[currentMessage.status] || 0;
+      const newMsgWeight = statusWeights[status.status] || 0;
+
+      if (newMsgWeight >= currentMsgWeight || status.status === 'failed') {
+        await this.supabase.client
+          .from('messages')
+          .update({ status: status.status })
+          .eq('id', currentMessage.id);
+      }
+    }
+
+    if (!currentRecipient && !currentMessage) {
+      this.logger.warn(`No se encontró registro para message_id: ${status.id}`);
+    }
   }
 
   private async handleIncoming(message: IncomingMessage) {

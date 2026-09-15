@@ -74,6 +74,32 @@ export class MetaService {
     }
   }
 
+  async sendText(to: string, text: string) {
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: to.replace(/\D/g, ''),
+      type: 'text',
+      text: {
+        preview_url: false,
+        body: text,
+      },
+    };
+
+    try {
+      this.logger.log(`[MetaService] Enviando mensaje de texto directo a: ${to}`);
+      const { data } = await axios.post(this.baseUrl, payload, { headers: this.headers });
+      this.logger.log(`[MetaService] Mensaje de texto enviado a ${to} — ID: ${data.messages?.[0]?.id}`);
+      return data;
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      const errorMsg = errorData?.error?.message || error.message;
+      const errorCode = errorData?.error?.code;
+      this.logger.error(`[MetaService] ERROR en sendText a ${to}: [${errorCode || 'ERR'}] ${errorMsg}`);
+      throw error;
+    }
+  }
+
   async getTemplates() {
     const url = `https://graph.facebook.com/${process.env.META_API_VERSION || 'v19.0'}/${process.env.META_WABA_ID}/message_templates`;
     console.log(`[MetaService] GET: ${url}`);
