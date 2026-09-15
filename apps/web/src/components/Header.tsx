@@ -38,70 +38,87 @@ export default function Header() {
   const userInitial = user?.name ? user.name[0] : user?.email ? user.email[0] : 'W';
 
   return (
-    <header className="h-14 px-6 border-b border-wavo-border/50 bg-wavo-sand/80 backdrop-blur-sm flex items-center justify-end sticky top-0 z-40">
-      <div className="relative group/avatar" ref={menuRef}>
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="w-[34px] h-[34px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center text-xs font-bold shrink-0 border border-[#1D9E75]/20 hover:shadow-md transition-all cursor-pointer outline-none uppercase overflow-hidden"
-          title={user?.name || user?.email || 'Wavo'}
-        >
-          {user?.avatar_url ? (
-            <img
-              src={user.avatar_url}
-              alt={user.name || user.email || 'Avatar'}
-              className="w-full h-full object-cover"
-            />
-          ) : user?.email ? (
-            userInitial
-          ) : (
-            <img
-              src="/logo.png"
-              alt="Wavo"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                if (e.currentTarget.parentElement) {
-                  e.currentTarget.parentElement.innerText = 'W';
-                }
-              }}
-            />
-          )}
-        </button>
+    <header className="h-16 px-6 lg:px-8 border-b border-[#E4ECE7] bg-white/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-40">
+      {/* Left info badge */}
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#0F8F6F] animate-pulse" />
+          WhatsApp Cloud API
+        </span>
+      </div>
 
-        {/* Tooltip con el correo */}
+      {/* Right User menu */}
+      <div className="flex items-center gap-4">
         {user?.email && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-[#2c2a1e] text-white text-[10px] rounded opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[60]">
-            {user.email}
+          <div className="hidden sm:block text-right">
+            <p className="text-xs font-semibold text-[#17201C] truncate max-w-[200px]">
+              {user.name || user.email.split('@')[0]}
+            </p>
+            <p className="text-[10px] text-[#64716B] truncate max-w-[200px]">
+              {user.email}
+            </p>
           </div>
         )}
 
-        {/* Menu desplegable */}
-        {menuOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white border border-[#EDE8D0] rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <Link
-              href="/dashboard/profile"
-              onClick={() => setMenuOpen(false)}
-              className="w-full text-left px-4 py-2.5 text-[13px] text-[#2c2a1e] hover:bg-[#FDFCF5] hover:text-wavo-green transition-colors flex items-center gap-2 font-medium border-b border-[#EDE8D0]/60"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              Mi perfil
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-4 py-2.5 text-[13px] text-[#2c2a1e] hover:bg-[#FDFCF5] hover:text-red-600 transition-colors flex items-center gap-2 font-medium"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              Cerrar sesión
-            </button>
-          </div>
-        )}
+        <div className="relative group/avatar" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="w-9 h-9 rounded-xl bg-[#E8F7F0] text-[#065F46] flex items-center justify-center text-xs font-bold shrink-0 border border-[#0F8F6F]/25 hover:border-[#0F8F6F] hover:shadow-xs transition-all cursor-pointer outline-none uppercase overflow-hidden"
+            title={user?.name || user?.email || 'Wavo'}
+          >
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.name || user.email || 'Avatar'}
+                className="w-full h-full object-cover"
+              />
+            ) : user?.email ? (
+              userInitial
+            ) : (
+              <img
+                src="/logo.png"
+                alt="Wavo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.parentElement) {
+                    e.currentTarget.parentElement.innerText = 'W';
+                  }
+                }}
+              />
+            )}
+          </button>
+
+          {/* Menu desplegable */}
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-52 bg-white border border-[#E4ECE7] rounded-2xl shadow-lg py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-4 py-2.5 border-b border-[#E4ECE7]/60 sm:hidden">
+                <p className="text-xs font-semibold text-[#17201C] truncate">{user?.name || 'Usuario'}</p>
+                <p className="text-[10px] text-[#64716B] truncate">{user?.email}</p>
+              </div>
+
+              <Link
+                href="/dashboard/profile"
+                onClick={() => setMenuOpen(false)}
+                className="w-full text-left px-4 py-2.5 text-xs text-[#17201C] hover:bg-[#F8FAF9] hover:text-[#0F8F6F] transition-colors flex items-center gap-2.5 font-medium"
+              >
+                <svg className="w-4 h-4 text-[#64716B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Mi perfil
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2.5 text-xs text-red-600 hover:bg-red-50/50 transition-colors flex items-center gap-2.5 font-medium border-t border-[#E4ECE7]/60 cursor-pointer"
+              >
+                <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

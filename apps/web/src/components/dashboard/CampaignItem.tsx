@@ -19,10 +19,10 @@ interface Campaign {
 }
 
 const statusBadge = (s: string) => {
-  if (s === 'running') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-wavo-green text-white shadow-sm border border-wavo-green/10">ENVIANDO</span>;
-  if (s === 'scheduled') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#FAEEDA] text-[#854F0B] border border-[#854F0B]/10">PROGRAMADA</span>;
-  if (s === 'completed') return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#F5F1DF] text-[#5F5E5A] border border-[#EDE8D0]">COMPLETADA</span>;
-  return <span className="text-[10px] px-2.5 py-1 rounded-md font-semibold tracking-wide bg-[#F5F1DF] text-[#854F0B]">BORRADOR</span>;
+  if (s === 'running') return <span className="text-[10px] px-2.5 py-1 rounded-full font-semibold tracking-wide bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/20">ENVIANDO</span>;
+  if (s === 'scheduled') return <span className="text-[10px] px-2.5 py-1 rounded-full font-semibold tracking-wide bg-amber-50 text-amber-800 border border-amber-200/60">PROGRAMADA</span>;
+  if (s === 'completed') return <span className="text-[10px] px-2.5 py-1 rounded-full font-semibold tracking-wide bg-[#F1FAF5] text-[#065F46] border border-[#E4ECE7]">COMPLETADA</span>;
+  return <span className="text-[10px] px-2.5 py-1 rounded-full font-semibold tracking-wide bg-[#F8FAF9] text-[#64716B] border border-[#E4ECE7]">BORRADOR</span>;
 };
 
 export function CampaignItem({ campaign }: { campaign: Campaign }) {
@@ -30,18 +30,18 @@ export function CampaignItem({ campaign }: { campaign: Campaign }) {
   const timeAgo = formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
 
   return (
-    <div className="flex items-center justify-between py-4 px-2 -mx-2 rounded-lg hover:bg-[#F5F1DF]/50 transition-colors border-b border-[#EDE8D0] last:border-0 group cursor-default">
+    <div className="flex items-center justify-between py-3.5 px-3 rounded-xl hover:bg-[#F8FAF9] transition-colors border-b border-[#E4ECE7] last:border-0 group cursor-default">
       <div className="flex-1">
-        <div className="flex items-center justify-between mb-1">
-          <div className="text-[13px] text-[#2c2a1e] font-semibold group-hover:text-[#1D9E75] transition-colors">{campaign.name}</div>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="text-xs text-[#17201C] font-semibold group-hover:text-[#0F8F6F] transition-colors">{campaign.name}</div>
           {statusBadge(campaign.status)}
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="text-[11px] text-[#908c72] flex items-center gap-1.5">
+          <div className="text-[11px] text-[#64716B] flex items-center gap-1.5 font-medium">
             <span className="flex items-center gap-1">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              {campaign.total_recipients}
+              {campaign.total_recipients} destinatarios
             </span>
             <span>·</span>
             <span>{timeAgo}</span>
@@ -49,11 +49,11 @@ export function CampaignItem({ campaign }: { campaign: Campaign }) {
 
           {campaign.stats && (
             <div className="flex items-center gap-3 text-[10px] font-bold">
-              <div className="flex items-center gap-1 text-wavo-green" title="Entregados">
+              <div className="flex items-center gap-1 text-[#0F8F6F]" title="Entregados">
                 <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                 {campaign.stats.delivered}
               </div>
-              <div className="flex items-center gap-1 text-[#1D9E75]" title="Leídos">
+              <div className="flex items-center gap-1 text-[#065F46]" title="Leídos">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 {campaign.stats.read}
               </div>

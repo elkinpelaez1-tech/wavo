@@ -9,15 +9,17 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, sub, isWarning = false }: MetricCardProps) {
   return (
-    <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-      <div className="text-[12px] font-medium text-[#908c72] uppercase tracking-wider mb-2">{label}</div>
-      <div className="text-3xl font-semibold text-[#2c2a1e] tracking-tight mb-2.5">{value}</div>
-      <div className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
-        isWarning ? 'bg-[#F0997B]/20 text-[#995E10]' : 'bg-wavo-green/10 text-[#908c72]'
+    <div className="bg-white border border-[#E4ECE7] rounded-2xl p-5 shadow-xs hover:shadow-sm hover:border-[#0F8F6F]/30 hover:-translate-y-0.5 transition-all duration-200">
+      <div className="text-[11px] font-semibold text-[#64716B] uppercase tracking-wider mb-2">{label}</div>
+      <div className="text-2xl lg:text-3xl font-bold text-[#17201C] tracking-tight mb-2.5">{value}</div>
+      <div className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+        isWarning
+          ? 'bg-amber-50 text-amber-800 border border-amber-200/60'
+          : 'bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/20'
       }`}>
         {sub.startsWith('↑') && !isWarning ? (
           <>
-            <span className="text-wavo-green">{sub.split(' ')[0]}</span>
+            <span className="text-[#0F8F6F] font-bold">{sub.split(' ')[0]}</span>
             <span>{sub.substring(sub.split(' ')[0].length)}</span>
           </>
         ) : sub}

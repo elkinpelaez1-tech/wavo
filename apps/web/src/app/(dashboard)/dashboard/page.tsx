@@ -87,35 +87,47 @@ export default function DashboardPage() {
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Onboarding Message */}
-      <div className="bg-[#E1F5EE] border border-[#1D9E75]/20 rounded-lg p-3 mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-1 duration-500">
-        <span className="text-lg">🚀</span>
-        <p className="text-[13px] font-medium text-[#0F6E56]">
-          Empieza creando un contacto y luego lanza tu primera campaña
+      <div className="bg-[#E8F7F0] border border-[#0F8F6F]/20 rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs animate-in fade-in slide-in-from-top-1 duration-300">
+        <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-base shadow-2xs shrink-0">
+          🚀
+        </div>
+        <p className="text-xs font-semibold text-[#065F46]">
+          Empieza creando un contacto y luego lanza tu primera campaña en WhatsApp
         </p>
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-[#2c2a1e] tracking-tight">Panel principal</h1>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${plan === 'pro' ? 'bg-wavo-green text-white' : 'bg-[#EDE8D0] text-[#908c72]'}`}>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">Panel principal</h1>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+              plan === 'pro' 
+                ? 'bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/25' 
+                : 'bg-zinc-100 text-zinc-700 border border-zinc-200/60'
+            }`}>
               {plan}
             </span>
           </div>
-          <p className="text-[13px] text-[#908c72] capitalize mt-0.5">{today}</p>
+          <p className="text-xs text-[#64716B] capitalize mt-1 font-medium">{today}</p>
         </div>
-        <div className="flex gap-3 items-center">
-          <a href="/dashboard/contacts" className="bg-white border border-[#EDE8D0] text-[#2c2a1e] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#FDFCF5] transition-colors shadow-sm">
-            + Crear contacto
+        <div className="flex flex-wrap gap-2.5 items-center">
+          <a 
+            href="/dashboard/contacts" 
+            className="btn-secondary flex items-center gap-1.5"
+          >
+            <span>+ Crear contacto</span>
           </a>
-          <a href="/dashboard/campaigns/new" className="bg-wavo-green hover:bg-[#0F6E56] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-wavo-green/20">
-            + Nueva campaña
+          <a 
+            href="/dashboard/campaigns/new" 
+            className="btn-primary flex items-center gap-1.5"
+          >
+            <span>+ Nueva campaña</span>
           </a>
           {plan === 'free' && (
-            <button className="bg-[#2c2a1e] hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+            <button className="bg-[#17201C] hover:bg-black text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-xs cursor-pointer">
               Actualizar a PRO
             </button>
           )}
@@ -123,7 +135,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard 
           label="Enviados hoy" 
           value={loading ? '...' : stats.sent_today.toLocaleString()} 
@@ -148,41 +160,41 @@ export default function DashboardPage() {
       </div>
 
       {/* Grid: Campañas y Rendimiento */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Campañas activas */}
-        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+        <div className="bg-white border border-[#E4ECE7] rounded-2xl p-5 shadow-xs flex flex-col hover:shadow-sm transition-all duration-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-semibold text-[#2c2a1e]">Campañas activas</h2>
-            <a href="/dashboard/campaigns" className="text-[11px] font-medium text-[#1D9E75] hover:underline">Ver todas</a>
+            <h2 className="text-xs font-semibold text-[#17201C]">Campañas activas</h2>
+            <a href="/dashboard/campaigns" className="text-xs font-semibold text-[#0F8F6F] hover:underline">Ver todas</a>
           </div>
           {loading ? (
-            <p className="text-[12px] text-[#908c72] py-4">Cargando datos...</p>
+            <p className="text-xs text-[#64716B] py-6 text-center font-medium">Cargando datos...</p>
           ) : campaigns.length === 0 ? (
             <div className="text-center py-10">
-              <div className="w-12 h-12 bg-[#F5F1DF] rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
+              <div className="w-12 h-12 bg-[#E8F7F0] text-[#065F46] rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl border border-[#0F8F6F]/20 shadow-2xs">
                 📢
               </div>
-              <h3 className="text-sm font-semibold text-[#2c2a1e] mb-1">Aún no tienes campañas</h3>
-              <p className="text-[11px] text-[#908c72] mb-5">Llega a tus clientes hoy mismo.</p>
-              <a href="/dashboard/campaigns/new" className="bg-wavo-green text-white px-6 py-2 rounded-lg text-xs font-semibold hover:bg-[#0F6E56] transition-colors shadow-sm inline-block">
+              <h3 className="text-sm font-bold text-[#17201C] mb-1">Aún no tienes campañas</h3>
+              <p className="text-xs text-[#64716B] mb-5 font-medium">Llega a tus clientes hoy mismo a través de WhatsApp.</p>
+              <a href="/dashboard/campaigns/new" className="btn-primary inline-block">
                 Crear campaña
               </a>
             </div>
           ) : (
-            <div className="flex flex-col">
+            <div className="flex flex-col divide-y divide-[#E4ECE7]">
               {campaigns.map(c => <CampaignItem key={c.id} campaign={c} />)}
             </div>
           )}
         </div>
 
         {/* Rendimiento por campaña */}
-        <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-          <h2 className="text-[13px] font-semibold text-[#2c2a1e] mb-5">Rendimiento global</h2>
+        <div className="bg-white border border-[#E4ECE7] rounded-2xl p-5 shadow-xs hover:shadow-sm transition-all duration-200">
+          <h2 className="text-xs font-semibold text-[#17201C] mb-5">Rendimiento global</h2>
           <div className="flex flex-col gap-2">
-            <ProgressBar label="Entregado" percentage={stats.delivery_rate} color="#1D9E75" delay={100} />
-            <ProgressBar label="Abierto" percentage={stats.open_rate} color="#5DCAA5" delay={200} />
-            <ProgressBar label="Respondió" percentage={0} color="#0F6E56" delay={300} />
-            <ProgressBar label="Fallido" percentage={Math.max(0, 100 - stats.delivery_rate - stats.open_rate)} color="#EDE8D0" delay={400} />
+            <ProgressBar label="Entregado" percentage={stats.delivery_rate} color="#0F8F6F" delay={100} />
+            <ProgressBar label="Abierto" percentage={stats.open_rate} color="#129F78" delay={200} />
+            <ProgressBar label="Respondió" percentage={0} color="#065F46" delay={300} />
+            <ProgressBar label="Fallido" percentage={Math.max(0, 100 - stats.delivery_rate - stats.open_rate)} color="#E4ECE7" delay={400} />
             <ProgressBar label="Opt-out" percentage={stats.optouts_week > 0 ? 2 : 0} color="#F0997B" delay={500} />
           </div>
         </div>

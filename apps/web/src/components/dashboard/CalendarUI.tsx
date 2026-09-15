@@ -10,15 +10,15 @@ export function CalendarUI() {
   ];
 
   return (
-    <div className="bg-[#FDFCF5] border border-[#EDE8D0] rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+    <div className="bg-white border border-[#E4ECE7] rounded-2xl p-5 shadow-xs hover:shadow-sm transition-all duration-200">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[13px] font-semibold text-[#2c2a1e]">Calendario de campañas</h2>
-        <span className="text-[11px] font-medium text-[#908c72] bg-[#F5F1DF] px-2.5 py-1 rounded-md">Abril / Mayo 2026</span>
+        <h2 className="text-xs font-semibold text-[#17201C]">Calendario de campañas</h2>
+        <span className="text-[11px] font-semibold text-[#065F46] bg-[#E8F7F0] border border-[#0F8F6F]/20 px-2.5 py-1 rounded-full">Abril / Mayo 2026</span>
       </div>
       
       <div className="grid grid-cols-7 gap-1.5 mb-2">
         {['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'].map(day => (
-          <div key={day} className="text-[10px] font-medium text-[#908c72] text-center uppercase">{day}</div>
+          <div key={day} className="text-[10px] font-semibold text-[#64716B] text-center uppercase tracking-wider">{day}</div>
         ))}
       </div>
       
@@ -27,13 +27,13 @@ export function CalendarUI() {
           const dayNum = day.d <= 30 ? day.d : day.d - 30;
           const isToday = day.d === 27;
           
-          let className = "aspect-square rounded-lg flex items-center justify-center text-[11px] cursor-pointer transition-all duration-200 ";
+          let className = "aspect-square rounded-xl flex items-center justify-center text-xs cursor-pointer transition-all duration-150 ";
           if (isToday) {
-            className += " bg-[#1D9E75] text-white font-bold shadow-md shadow-[#1D9E75]/30 ring-2 ring-offset-1 ring-[#1D9E75]/50 ring-offset-[#FDFCF5] scale-105";
+            className += " bg-[#0F8F6F] text-white font-bold shadow-sm shadow-[#0F8F6F]/30 scale-105";
           } else if (day.h) {
-            className += " bg-wavo-green/20 text-wavo-green font-semibold hover:bg-wavo-green hover:text-white hover:shadow-sm";
+            className += " bg-[#E8F7F0] text-[#065F46] font-semibold hover:bg-[#0F8F6F] hover:text-white hover:shadow-xs";
           } else {
-            className += " text-[#908c72] hover:bg-[#EDE8D0] hover:text-[#2c2a1e] font-medium";
+            className += " text-[#64716B] hover:bg-[#F8FAF9] hover:text-[#17201C] font-medium";
           }
 
           return (

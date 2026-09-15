@@ -38,76 +38,83 @@ export default function StatsPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-lg font-medium text-wavo-text mb-6">Estadísticas</h1>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">Estadísticas</h1>
+          <p className="text-xs text-[#64716B] mt-1 font-medium">Métricas de entrega y apertura en tiempo real</p>
+        </div>
+      </div>
 
       {/* Totales globales */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total enviados', value: totals.sent.toLocaleString() },
-          { label: 'Tasa entrega', value: pct(totals.delivered, totals.sent) },
-          { label: 'Tasa apertura', value: pct(totals.read, totals.delivered) },
-          { label: 'Fallidos', value: totals.failed.toLocaleString() },
+          { label: 'Tasa de entrega', value: pct(totals.delivered, totals.sent) },
+          { label: 'Tasa de apertura', value: pct(totals.read, totals.delivered) },
+          { label: 'Mensajes fallidos', value: totals.failed.toLocaleString() },
         ].map((m) => (
           <div key={m.label} className="metric-card">
-            <p className="text-xs text-wavo-muted mb-1">{m.label}</p>
-            <p className="text-2xl font-medium text-wavo-text">{m.value}</p>
+            <p className="text-[11px] font-semibold text-[#64716B] uppercase tracking-wider mb-2">{m.label}</p>
+            <p className="text-2xl lg:text-3xl font-bold text-[#17201C] tracking-tight">{m.value}</p>
           </div>
         ))}
       </div>
 
       {/* Gráfica por campaña */}
-      <div className="card mb-6">
-        <h2 className="text-sm font-medium text-wavo-text mb-4">Rendimiento por campaña</h2>
+      <div className="card">
+        <h2 className="text-xs font-semibold text-[#17201C] mb-4">Rendimiento por campaña</h2>
         {loading ? (
-          <p className="text-sm text-wavo-muted">Cargando...</p>
+          <p className="text-xs text-[#64716B] py-8 text-center font-medium">Cargando datos...</p>
         ) : chartData.length === 0 ? (
-          <p className="text-sm text-wavo-muted">No hay campañas completadas aún</p>
+          <p className="text-xs text-[#64716B] py-8 text-center font-medium">No hay campañas completadas aún</p>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={chartData} margin={{ left: -10 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#908c72' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#908c72' }} />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64716B' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#64716B' }} />
               <Tooltip
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: '0.5px solid #EDE8D0' }}
+                contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #E4ECE7', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
               />
-              <Bar dataKey="enviados" fill="#5DCAA5" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="entregados" fill="#1D9E75" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="leídos" fill="#0F6E56" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="enviados" fill="#129F78" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="entregados" fill="#0F8F6F" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="leídos" fill="#065F46" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
-        <div className="flex gap-4 mt-3 text-xs text-wavo-muted">
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-wavo-foam inline-block" />Enviados</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-wavo-green inline-block" />Entregados</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-wavo-deep inline-block" />Leídos</span>
+        <div className="flex gap-4 mt-4 pt-3 border-t border-[#E4ECE7] text-xs text-[#64716B] font-medium">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#129F78] inline-block" />Enviados</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#0F8F6F] inline-block" />Entregados</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#065F46] inline-block" />Leídos</span>
         </div>
       </div>
 
       {/* Tabla detallada */}
-      <div className="card">
-        <h2 className="text-sm font-medium text-wavo-text mb-4">Detalle por campaña</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-wavo-border">
-              {['Campaña','Enviados','Entregados','Leídos','% Entrega','% Apertura'].map((h) => (
-                <th key={h} className="text-left py-2 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-wavo-border">
-            {campaigns.map((c) => (
-              <tr key={c.id} className="hover:bg-wavo-sidebar">
-                <td className="py-2 px-2 text-wavo-text font-medium">{c.name}</td>
-                <td className="py-2 px-2 text-wavo-muted">{c.sent_count ?? 0}</td>
-                <td className="py-2 px-2 text-wavo-muted">{c.delivered_count ?? 0}</td>
-                <td className="py-2 px-2 text-wavo-muted">{c.read_count ?? 0}</td>
-                <td className="py-2 px-2 text-wavo-green font-medium">{pct(c.delivered_count, c.sent_count)}</td>
-                <td className="py-2 px-2 text-wavo-green font-medium">{pct(c.read_count, c.delivered_count)}</td>
+      <div className="card overflow-hidden">
+        <h2 className="text-xs font-semibold text-[#17201C] mb-4">Detalle por campaña</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-[#E4ECE7]">
+                {['Campaña','Enviados','Entregados','Leídos','% Entrega','% Apertura'].map((h) => (
+                  <th key={h} className="text-left py-2.5 px-3 font-semibold text-[#64716B] uppercase tracking-wider">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[#E4ECE7]">
+              {campaigns.map((c) => (
+                <tr key={c.id} className="hover:bg-[#F8FAF9] transition-colors">
+                  <td className="py-3 px-3 text-[#17201C] font-semibold">{c.name}</td>
+                  <td className="py-3 px-3 text-[#64716B]">{c.sent_count ?? 0}</td>
+                  <td className="py-3 px-3 text-[#64716B]">{c.delivered_count ?? 0}</td>
+                  <td className="py-3 px-3 text-[#64716B]">{c.read_count ?? 0}</td>
+                  <td className="py-3 px-3 text-[#0F8F6F] font-semibold">{pct(c.delivered_count, c.sent_count)}</td>
+                  <td className="py-3 px-3 text-[#065F46] font-semibold">{pct(c.read_count, c.delivered_count)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

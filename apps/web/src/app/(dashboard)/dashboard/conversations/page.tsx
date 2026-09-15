@@ -400,27 +400,27 @@ export default function ConversationsPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-7.5rem)] min-h-[550px] bg-wavo-card rounded-2xl border border-wavo-border overflow-hidden shadow-sm flex flex-col md:flex-row">
+    <div className="h-[calc(100vh-7.5rem)] min-h-[550px] bg-white rounded-2xl border border-[#E4ECE7] overflow-hidden shadow-xs flex flex-col md:flex-row">
       {/* ========================================================= */}
       {/* COLUMNA IZQUIERDA: LISTA DE CONVERSACIONES                */}
       {/* ========================================================= */}
       <div
-        className={`w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-wavo-border flex flex-col bg-wavo-card ${
+        className={`w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-[#E4ECE7] flex flex-col bg-white ${
           selectedId ? 'hidden md:flex' : 'flex'
         }`}
       >
         {/* Encabezado Lista */}
-        <div className="p-4 border-b border-wavo-border">
+        <div className="p-4 border-b border-[#E4ECE7]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold text-wavo-text">Conversaciones</h1>
-              <span className="bg-wavo-sand text-wavo-deep text-xs font-semibold px-2 py-0.5 rounded-full border border-wavo-border">
+              <h1 className="text-sm font-bold text-[#17201C]">Conversaciones</h1>
+              <span className="bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/20 text-xs font-semibold px-2 py-0.5 rounded-full">
                 {conversations.length}
               </span>
             </div>
             <button
               onClick={() => fetchConversations(false)}
-              className="text-wavo-muted hover:text-wavo-green transition-colors p-1.5 rounded-lg hover:bg-wavo-sidebar"
+              className="text-[#64716B] hover:text-[#0F8F6F] transition-colors p-1.5 rounded-xl hover:bg-[#F8FAF9] cursor-pointer"
               title="Actualizar conversaciones"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -432,7 +432,7 @@ export default function ConversationsPage() {
           {/* Buscador */}
           <div className="relative">
             <svg
-              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-wavo-muted"
+              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#64716B]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -444,12 +444,12 @@ export default function ConversationsPage() {
               placeholder="Buscar por nombre o teléfono..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-wavo-sand border border-wavo-border text-wavo-text placeholder-wavo-muted focus:outline-none focus:ring-2 focus:ring-wavo-green"
+              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-[#F8FAF9] border border-[#E4ECE7] text-[#17201C] placeholder-[#64716B]/60 focus:outline-none focus:ring-2 focus:ring-[#0F8F6F]/30 focus:border-[#0F8F6F] transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-wavo-muted hover:text-wavo-text text-xs"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64716B] hover:text-[#17201C] text-xs"
               >
                 ✕
               </button>
@@ -458,21 +458,21 @@ export default function ConversationsPage() {
         </div>
 
         {/* Listado con scroll */}
-        <div className="flex-1 overflow-y-auto divide-y divide-wavo-border/60">
+        <div className="flex-1 overflow-y-auto divide-y divide-[#E4ECE7]">
           {loadingList ? (
             <div className="p-8 text-center">
-              <div className="inline-block w-6 h-6 border-2 border-wavo-green border-t-transparent rounded-full animate-spin mb-2" />
-              <p className="text-xs text-wavo-muted">Cargando conversaciones...</p>
+              <div className="inline-block w-6 h-6 border-2 border-[#0F8F6F] border-t-transparent rounded-full animate-spin mb-2" />
+              <p className="text-xs text-[#64716B]">Cargando conversaciones...</p>
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-wavo-sand flex items-center justify-center mx-auto mb-3 text-wavo-muted text-xl">
+              <div className="w-12 h-12 rounded-2xl bg-[#E8F7F0] text-[#065F46] flex items-center justify-center mx-auto mb-3 text-xl border border-[#0F8F6F]/20">
                 💬
               </div>
-              <p className="text-sm font-medium text-wavo-text mb-1">
+              <p className="text-sm font-semibold text-[#17201C] mb-1">
                 {searchQuery ? 'Sin resultados' : 'Sin conversaciones'}
               </p>
-              <p className="text-xs text-wavo-muted max-w-[200px] mx-auto">
+              <p className="text-xs text-[#64716B] max-w-[200px] mx-auto">
                 {searchQuery
                   ? 'No se encontraron conversaciones con ese criterio'
                   : 'Los mensajes que respondan tus contactos aparecerán aquí automáticamente.'}
@@ -492,39 +492,39 @@ export default function ConversationsPage() {
                     setSelectedId(c.id);
                     setShowMobileDetails(false);
                   }}
-                  className={`w-full p-3.5 text-left flex items-start gap-3 transition-colors relative cursor-pointer ${
+                  className={`w-full p-3.5 text-left flex items-start gap-3 transition-all relative cursor-pointer ${
                     isSelected
-                      ? 'bg-wavo-sidebar border-l-4 border-wavo-green'
-                      : 'hover:bg-wavo-sidebar/50 bg-wavo-card'
+                      ? 'bg-[#F1FAF5] border-l-4 border-[#0F8F6F]'
+                      : 'hover:bg-[#F8FAF9] bg-white'
                   }`}
                 >
                   {/* Avatar con Inicial */}
                   <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-wavo-mist text-wavo-deep font-bold flex items-center justify-center text-sm border border-wavo-green/20">
+                    <div className="w-10 h-10 rounded-xl bg-[#E8F7F0] text-[#065F46] font-bold flex items-center justify-center text-sm border border-[#0F8F6F]/20">
                       {initial}
                     </div>
                     {hasUnread && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-wavo-green border-2 border-white rounded-full" />
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#0F8F6F] border-2 border-white rounded-full" />
                     )}
                   </div>
 
                   {/* Datos de la conversación */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <p className={`text-xs truncate ${hasUnread ? 'font-bold text-wavo-text' : 'font-medium text-wavo-text'}`}>
+                      <p className={`text-xs truncate ${hasUnread ? 'font-bold text-[#17201C]' : 'font-medium text-[#17201C]'}`}>
                         {contactName}
                       </p>
-                      <span className="text-[10px] text-wavo-muted flex-shrink-0">
+                      <span className="text-[10px] text-[#64716B] flex-shrink-0">
                         {formatListDate(c.last_message_at)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      <p className={`text-xs truncate ${hasUnread ? 'font-semibold text-wavo-green' : 'text-wavo-muted'}`}>
+                      <p className={`text-xs truncate ${hasUnread ? 'font-semibold text-[#0F8F6F]' : 'text-[#64716B]'}`}>
                         {c.last_message_text || 'Sin mensajes aún'}
                       </p>
                       {hasUnread && (
-                        <span className="bg-wavo-green text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex-shrink-0">
+                        <span className="bg-[#0F8F6F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex-shrink-0 shadow-2xs">
                           {c.unread_count}
                         </span>
                       )}
@@ -533,12 +533,12 @@ export default function ConversationsPage() {
                     {/* Badge adicional si tiene campaña u opt-out */}
                     <div className="flex items-center gap-1.5 mt-1.5">
                       {c.contact?.opted_out && (
-                        <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">
+                        <span className="badge-red text-[9px]">
                           Opt-out
                         </span>
                       )}
                       {c.campaign?.name && (
-                        <span className="text-[9px] bg-[#E1F5EE] text-[#0F6E56] px-1.5 py-0.5 rounded font-medium truncate max-w-[140px]">
+                        <span className="text-[9px] bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/20 px-2 py-0.5 rounded-full font-medium truncate max-w-[140px]">
                           📢 {c.campaign.name}
                         </span>
                       )}
@@ -776,16 +776,16 @@ export default function ConversationsPage() {
       {/* ========================================================= */}
       {activeConversation && (
         <div
-          className={`w-72 lg:w-80 flex-shrink-0 border-l border-wavo-border bg-wavo-card flex-col p-5 overflow-y-auto ${
-            showMobileDetails ? 'flex fixed inset-0 z-50 bg-wavo-card' : 'hidden lg:flex'
+          className={`w-72 lg:w-80 flex-shrink-0 border-l border-[#E4ECE7] bg-white flex-col p-5 overflow-y-auto ${
+            showMobileDetails ? 'flex fixed inset-0 z-50 bg-white' : 'hidden lg:flex'
           }`}
         >
           {showMobileDetails && (
             <div className="flex justify-between items-center mb-4 lg:hidden">
-              <h3 className="text-sm font-bold text-wavo-text">Detalles</h3>
+              <h3 className="text-sm font-bold text-[#17201C]">Detalles</h3>
               <button
                 onClick={() => setShowMobileDetails(false)}
-                className="text-wavo-muted hover:text-wavo-text p-1"
+                className="text-[#64716B] hover:text-[#17201C] p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -793,14 +793,14 @@ export default function ConversationsPage() {
           )}
 
           {/* Tarjeta Perfil */}
-          <div className="text-center pb-5 border-b border-wavo-border">
-            <div className="w-16 h-16 rounded-full bg-wavo-green text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 shadow-sm">
+          <div className="text-center pb-5 border-b border-[#E4ECE7]">
+            <div className="w-16 h-16 rounded-2xl bg-[#0F8F6F] text-white text-2xl font-bold flex items-center justify-center mx-auto mb-3 shadow-sm shadow-[#0F8F6F]/20">
               {activeConversation.contact?.name?.charAt(0).toUpperCase() || 'C'}
             </div>
-            <h3 className="text-sm font-bold text-wavo-text">
+            <h3 className="text-sm font-bold text-[#17201C]">
               {activeConversation.contact?.name || 'Contacto'}
             </h3>
-            <p className="text-xs text-wavo-muted mt-0.5">
+            <p className="text-xs text-[#64716B] mt-0.5 font-medium">
               {activeConversation.contact?.phone || activeConversation.contact?.phone_normalized}
             </p>
 
@@ -819,8 +819,8 @@ export default function ConversationsPage() {
             {activeConversation.campaign && (
               <div>
                 <p className="label">Campaña de Origen</p>
-                <div className="p-2.5 rounded-lg bg-wavo-sand border border-wavo-border">
-                  <p className="font-semibold text-wavo-text">{activeConversation.campaign.name}</p>
+                <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E4ECE7]">
+                  <p className="font-semibold text-[#17201C]">{activeConversation.campaign.name}</p>
                 </div>
               </div>
             )}
@@ -833,7 +833,7 @@ export default function ConversationsPage() {
                   {activeConversation.contact.tags.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="bg-wavo-sand text-wavo-deep px-2 py-0.5 rounded-md border border-wavo-border text-[11px]"
+                      className="bg-[#E8F7F0] text-[#065F46] border border-[#0F8F6F]/20 px-2.5 py-0.5 rounded-full text-[11px] font-medium"
                     >
                       #{tag}
                     </span>
@@ -851,10 +851,10 @@ export default function ConversationsPage() {
                     {Object.entries(activeConversation.contact.custom_fields).map(([key, val]) => (
                       <div
                         key={key}
-                        className="flex justify-between items-center p-2 rounded-lg bg-wavo-sand/70 border border-wavo-border/60"
+                        className="flex justify-between items-center p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E4ECE7]"
                       >
-                        <span className="text-wavo-muted font-medium capitalize">{key}:</span>
-                        <span className="text-wavo-text font-semibold">{String(val)}</span>
+                        <span className="text-[#64716B] font-medium capitalize">{key}:</span>
+                        <span className="text-[#17201C] font-semibold">{String(val)}</span>
                       </div>
                     ))}
                   </div>
@@ -864,13 +864,15 @@ export default function ConversationsPage() {
             {/* Última Actividad */}
             <div>
               <p className="label">Última Interacción</p>
-              <p className="text-wavo-text font-medium">
-                {activeConversation.last_message_at
-                  ? format(parseISO(activeConversation.last_message_at), "d 'de' MMMM, yyyy - hh:mm a", {
-                      locale: es,
-                    })
-                  : 'Sin fecha registrada'}
-              </p>
+              <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E4ECE7]">
+                <p className="text-[#17201C] font-semibold">
+                  {activeConversation.last_message_at
+                    ? format(parseISO(activeConversation.last_message_at), "d 'de' MMMM, yyyy - hh:mm a", {
+                        locale: es,
+                      })
+                    : 'Sin fecha registrada'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
