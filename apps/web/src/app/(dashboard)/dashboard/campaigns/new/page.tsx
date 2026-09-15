@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { getSupabase } from '@/lib/supabase';
@@ -24,6 +24,7 @@ interface Contact {
   id: string;
   name: string;
   phone: string;
+  tags?: string[];
 }
 
 export default function NewCampaignPage() {
@@ -38,8 +39,9 @@ export default function NewCampaignPage() {
   // Modo de envío: 'now' | 'schedule'
   const [sendMode, setSendMode] = useState<'now' | 'schedule'>('now');
 
-  // Filtro de búsqueda para contactos
+  // Filtros de contactos
   const [contactSearch, setContactSearch] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -55,8 +57,22 @@ export default function NewCampaignPage() {
 
   useEffect(() => {
     api.get('/templates').then(({ data }) => setTemplates(data || []));
-    api.get('/contacts?limit=200').then(({ data }) => setContacts(data.data || []));
+    api.get('/contacts?limit=500').then(({ data }) => setContacts(data.data || []));
   }, []);
+
+  // Extraer etiquetas únicas disponibles de los contactos cargados
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    contacts.forEach((c) => {
+      if (Array.isArray(c.tags)) {
+        c.tags.forEach((t) => {
+          const trimmed = typeof t === 'string' ? t.trim() : '';
+          if (trimmed) tagSet.add(trimmed);
+        });
+      }
+    });
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+  }, [contacts]);
 
   const hasImageHeader = (t: Template) => {
     return Array.isArray(t?.components) && t.components.some(
@@ -105,18 +121,37 @@ export default function NewCampaignPage() {
     );
   };
 
-  const filteredContacts = contacts.filter((c) => {
-    const query = contactSearch.toLowerCase();
-    const nameMatch = (c.name || '').toLowerCase().includes(query);
-    const phoneMatch = (c.phone || '').includes(query);
-    return nameMatch || phoneMatch;
-  });
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((c) => {
+      // 1. Filtro por etiqueta
+      if (selectedTag) {
+        if (!Array.isArray(c.tags) || !c.tags.some((t) => typeof t === 'string' && t.trim().toLowerCase() === selectedTag.trim().toLowerCase())) {
+          return false;
+        }
+      }
+      // 2. Filtro de búsqueda (nombre o teléfono)
+      if (contactSearch.trim()) {
+        const query = contactSearch.toLowerCase();
+        const nameMatch = (c.name || '').toLowerCase().includes(query);
+        const phoneMatch = (c.phone || '').includes(query);
+        return nameMatch || phoneMatch;
+      }
+      return true;
+    });
+  }, [contacts, selectedTag, contactSearch]);
+
+  // Determinar si todos los contactos filtrados actualmente están seleccionados
+  const allFilteredSelected = filteredContacts.length > 0 && filteredContacts.every((c) => selected.includes(c.id));
 
   const selectAll = () => {
-    if (selected.length === contacts.length) {
-      setSelected([]);
+    if (filteredContacts.length === 0) return;
+    if (allFilteredSelected) {
+      const filteredIds = new Set(filteredContacts.map((c) => c.id));
+      setSelected((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
-      setSelected(contacts.map((c) => c.id));
+      const newSelected = new Set(selected);
+      filteredContacts.forEach((c) => newSelected.add(c.id));
+      setSelected(Array.from(newSelected));
     }
   };
 
@@ -394,23 +429,61 @@ export default function NewCampaignPage() {
         {/* Paso 3: Destinatarios */}
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider">
-              3. Destinatarios ({selected.length} seleccionados)
-            </h2>
-            <button type="button" onClick={selectAll} className="text-xs text-[#0F8F6F] hover:underline font-semibold">
-              {selected.length === contacts.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+            <div>
+              <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider">
+                3. Destinatarios ({selected.length} seleccionados)
+              </h2>
+              {selectedTag && (
+                <p className="text-[11px] text-[#64716B] mt-0.5 font-medium">
+                  Etiqueta: <span className="font-semibold text-[#0F8F6F]">{selectedTag}</span> • {filteredContacts.length} {filteredContacts.length === 1 ? 'contacto encontrado' : 'contactos encontrados'}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={selectAll}
+              className="text-xs text-[#0F8F6F] hover:underline font-semibold"
+              disabled={filteredContacts.length === 0}
+            >
+              {allFilteredSelected ? 'Deseleccionar todos' : 'Seleccionar todos'}
             </button>
           </div>
 
-          {/* Buscador de contactos */}
-          <div>
-            <input
-              type="text"
-              className="input text-xs py-2"
-              placeholder="🔍 Buscar contacto por nombre o teléfono..."
-              value={contactSearch}
-              onChange={(e) => setContactSearch(e.target.value)}
-            />
+          {/* Filtros: Etiqueta y Búsqueda */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] font-semibold text-[#64716B] uppercase tracking-wider block mb-1">
+                Etiqueta
+              </label>
+              <select
+                className="input text-xs py-2"
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+              >
+                <option value="">Todas las etiquetas ({contacts.length})</option>
+                {availableTags.map((tag) => {
+                  const count = contacts.filter((c) => Array.isArray(c.tags) && c.tags.some(t => typeof t === 'string' && t.trim().toLowerCase() === tag.toLowerCase())).length;
+                  return (
+                    <option key={tag} value={tag}>
+                      {tag} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-[#64716B] uppercase tracking-wider block mb-1">
+                Búsqueda
+              </label>
+              <input
+                type="text"
+                className="input text-xs py-2"
+                placeholder="🔍 Buscar por nombre o teléfono..."
+                value={contactSearch}
+                onChange={(e) => setContactSearch(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="max-h-60 overflow-y-auto divide-y divide-[#E4ECE7] pr-1">
@@ -422,7 +495,9 @@ export default function NewCampaignPage() {
               </p>
             ) : filteredContacts.length === 0 ? (
               <p className="text-xs text-[#64716B] py-4 text-center font-medium">
-                No se encontraron contactos para &quot;{contactSearch}&quot;
+                {selectedTag
+                  ? `No se encontraron contactos con la etiqueta "${selectedTag}"${contactSearch ? ` que coincidan con "${contactSearch}"` : ''}`
+                  : `No se encontraron contactos para "${contactSearch}"`}
               </p>
             ) : (
               filteredContacts.map((c) => (
@@ -434,7 +509,25 @@ export default function NewCampaignPage() {
                     className="accent-[#0F8F6F] h-4 w-4 rounded"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#17201C] truncate">{c.name}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[#17201C] truncate">{c.name}</p>
+                      {c.tags && c.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 shrink-0">
+                          {c.tags.map((t) => (
+                            <span
+                              key={t}
+                              className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                selectedTag && t.trim().toLowerCase() === selectedTag.trim().toLowerCase()
+                                  ? 'bg-[#E8F7F0] text-[#0F8F6F] border border-[#0F8F6F]/30 font-semibold'
+                                  : 'bg-[#F8FAF9] text-[#64716B] border border-[#E4ECE7]'
+                              }`}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <p className="text-xs text-[#64716B] font-mono">{c.phone}</p>
                   </div>
                 </label>

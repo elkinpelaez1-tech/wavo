@@ -27,18 +27,47 @@ export class CreateContactDto {
 export class ContactsService {
   constructor(private supabase: SupabaseService) { }
 
-  async findAll(userId: string, page = 1, limit = 50) {
+  async findAll(userId: string, page = 1, limit = 50, tag?: string) {
     const from = (page - 1) * limit;
-    const { data, count, error } = await this.supabase.client
+    let query = this.supabase.client
       .from('contacts')
       .select('*', { count: 'exact' })
       .eq('user_id', userId)
       .is('deleted_at', null)
-      .eq('opted_out', false)
+      .eq('opted_out', false);
+
+    if (tag && tag.trim()) {
+      query = query.contains('tags', [tag.trim()]);
+    }
+
+    const { data, count, error } = await query
       .range(from, from + limit - 1)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return { data, total: count, page, limit };
+  }
+
+  async getTags(userId: string): Promise<string[]> {
+    const { data, error } = await this.supabase.client
+      .from('contacts')
+      .select('tags')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .eq('opted_out', false);
+
+    if (error) throw new Error(error.message);
+
+    const tagSet = new Set<string>();
+    (data || []).forEach((row: any) => {
+      if (Array.isArray(row.tags)) {
+        row.tags.forEach((t: string) => {
+          const trimmed = typeof t === 'string' ? t.trim() : '';
+          if (trimmed) tagSet.add(trimmed);
+        });
+      }
+    });
+
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }
 
   async create(userId: string, dto: CreateContactDto, plan: string = 'free') {

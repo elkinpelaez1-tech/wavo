@@ -15,8 +15,14 @@ export class ContactsController {
     @Request() req,
     @Query('page') page = '1',
     @Query('limit') limit = '50',
+    @Query('tag') tag?: string,
   ) {
-    return this.contacts.findAll(req.user.id, +page, +limit);
+    return this.contacts.findAll(req.user.id, +page, +limit, tag);
+  }
+
+  @Get('tags')
+  getTags(@Request() req) {
+    return this.contacts.getTags(req.user.id);
   }
 
   @Post()
