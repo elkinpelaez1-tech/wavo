@@ -61,11 +61,66 @@ export default function ConversationsPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef<boolean>(true);
+  const isPollingRef = useRef<boolean>(false);
+
+  // Referencias mutables para el polling periódico
+  const selectedIdRef = useRef<string | null>(selectedId);
+  selectedIdRef.current = selectedId;
+
+  const messagesRef = useRef<Message[]>(messages);
+  messagesRef.current = messages;
+
+  const conversationsRef = useRef<Conversation[]>(conversations);
+  conversationsRef.current = conversations;
+
+  // Comparadores de igualdad para evitar re-renders innecesarios
+  const areConversationsEqual = (a: Conversation[], b: Conversation[]) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (
+        a[i].id !== b[i].id ||
+        a[i].last_message_text !== b[i].last_message_text ||
+        a[i].last_message_at !== b[i].last_message_at ||
+        a[i].unread_count !== b[i].unread_count ||
+        a[i].status !== b[i].status
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const areMessagesEqual = (a: Message[], b: Message[]) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (
+        a[i].id !== b[i].id ||
+        a[i].status !== b[i].status ||
+        a[i].body !== b[i].body
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Detectar posición de scroll del chat
+  const handleChatScroll = () => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const threshold = 120;
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+    isNearBottomRef.current = isAtBottom;
+  };
 
   // Limpiar errores y campo de texto al cambiar de conversación
   useEffect(() => {
     setSendError(null);
     setInputBody('');
+    isNearBottomRef.current = true;
   }, [selectedId]);
 
   // Cargar lista de conversaciones
@@ -73,20 +128,97 @@ export default function ConversationsPage() {
     if (showLoading) setLoadingList(true);
     try {
       const { data } = await api.get('/conversations');
-      setConversations(data || []);
+      const incoming: Conversation[] = data || [];
+      if (!areConversationsEqual(conversationsRef.current, incoming)) {
+        setConversations(incoming);
+      }
       // Si hay conversaciones y no hay ninguna seleccionada, seleccionar la primera en pantallas grandes
-      if (data?.length > 0 && !selectedId && typeof window !== 'undefined' && window.innerWidth >= 768) {
-        setSelectedId(data[0].id);
+      if (
+        incoming.length > 0 &&
+        !selectedIdRef.current &&
+        typeof window !== 'undefined' &&
+        window.innerWidth >= 768
+      ) {
+        setSelectedId(incoming[0].id);
       }
     } catch (err) {
       console.error('Error al cargar conversaciones:', err);
     } finally {
-      setLoadingList(false);
+      if (showLoading) setLoadingList(false);
     }
   };
 
   useEffect(() => {
     fetchConversations(true);
+  }, []);
+
+  // Polling automático controlado cada 4 segundos
+  useEffect(() => {
+    const pollUpdates = async () => {
+      if (isPollingRef.current) return;
+      isPollingRef.current = true;
+
+      try {
+        const currentSelectedId = selectedIdRef.current;
+
+        // 1. Consultar lista de conversaciones
+        const convPromise = api.get('/conversations');
+        // 2. Si hay conversación activa, consultar sus mensajes en paralelo
+        const msgPromise = currentSelectedId
+          ? api.get(`/conversations/${currentSelectedId}/messages`)
+          : Promise.resolve(null);
+
+        const [convRes, msgRes] = await Promise.allSettled([convPromise, msgPromise]);
+
+        // Actualizar listado de conversaciones silenciosamente
+        if (convRes.status === 'fulfilled' && convRes.value?.data) {
+          const incomingConvs: Conversation[] = convRes.value.data;
+          if (!areConversationsEqual(conversationsRef.current, incomingConvs)) {
+            setConversations(incomingConvs);
+          }
+        }
+
+        // Actualizar mensajes de la conversación activa silenciosamente
+        if (
+          currentSelectedId &&
+          currentSelectedId === selectedIdRef.current &&
+          msgRes.status === 'fulfilled' &&
+          msgRes.value?.data?.messages
+        ) {
+          const incomingMessages: Message[] = msgRes.value.data.messages;
+          const currentMsgs = messagesRef.current;
+
+          if (!areMessagesEqual(currentMsgs, incomingMessages)) {
+            const hasNewMessages = incomingMessages.length > currentMsgs.length;
+            setMessages(incomingMessages);
+
+            // Si llegaron mensajes nuevos y el usuario estaba al final, auto-scroll suave
+            if (hasNewMessages && isNearBottomRef.current) {
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }, 60);
+            }
+
+            // Marcar como leído si tiene mensajes pendientes
+            const targetConv = conversationsRef.current.find((c) => c.id === currentSelectedId);
+            if (targetConv && targetConv.unread_count > 0) {
+              api.patch(`/conversations/${currentSelectedId}/read`).catch(() => {});
+              setConversations((prev) =>
+                prev.map((c) => (c.id === currentSelectedId ? { ...c, unread_count: 0 } : c))
+              );
+            }
+          }
+        }
+      } catch (err) {
+        // Polling silencioso
+        console.debug('Polling error (silenciado):', err);
+      } finally {
+        isPollingRef.current = false;
+      }
+    };
+
+    const intervalId = setInterval(pollUpdates, 4000);
+    return () => clearInterval(intervalId);
   }, []);
 
   // Cargar mensajes de la conversación seleccionada
@@ -98,12 +230,17 @@ export default function ConversationsPage() {
 
     let isCurrent = true;
     setLoadingMessages(true);
+    isNearBottomRef.current = true;
 
     api
       .get(`/conversations/${selectedId}/messages`)
       .then(({ data }) => {
         if (!isCurrent) return;
-        setMessages(data?.messages || []);
+        const incoming = data?.messages || [];
+        setMessages(incoming);
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }, 50);
 
         // Marcar como leído si tiene mensajes pendientes
         const targetConv = conversations.find((c) => c.id === selectedId);
@@ -126,9 +263,11 @@ export default function ConversationsPage() {
     };
   }, [selectedId]);
 
-  // Auto-scroll al final de los mensajes
+  // Auto-scroll condicional al final de los mensajes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Conversación activa
@@ -221,9 +360,16 @@ export default function ConversationsPage() {
         body: text,
       });
 
-      // Insertar el mensaje enviado al historial
-      setMessages((prev) => [...prev, data]);
+      // Insertar el mensaje enviado al historial evitando duplicación
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === data.id)) return prev;
+        return [...prev, data];
+      });
       setInputBody('');
+      isNearBottomRef.current = true;
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
 
       // Actualizar la lista lateral de conversaciones
       setConversations((prev) =>
@@ -465,7 +611,11 @@ export default function ConversationsPage() {
             </div>
 
             {/* Historial de Mensajes con Scroll */}
-            <div className="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto">
+            <div
+              ref={chatContainerRef}
+              onScroll={handleChatScroll}
+              className="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto"
+            >
               {loadingMessages ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="inline-block w-6 h-6 border-2 border-wavo-green border-t-transparent rounded-full animate-spin" />
