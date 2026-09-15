@@ -29,61 +29,61 @@ export default function CampaignDetailPage() {
   const stats = campaign.stats || { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
 
   return (
-    <div className="max-w-4xl">
-      <div className="flex items-center gap-3 mb-6">
-        <a href="/dashboard/campaigns" className="text-wavo-muted hover:text-wavo-text text-sm">
-          ← Campañas
+    <div className="max-w-4xl space-y-6">
+      <div className="flex items-center gap-2">
+        <a href="/dashboard/campaigns" className="text-xs font-semibold text-[#0F8F6F] hover:underline flex items-center gap-1">
+          ← Volver a Campañas
         </a>
-        <span className="text-wavo-border">/</span>
-        <h1 className="text-lg font-medium text-wavo-text">{campaign.name}</h1>
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">{campaign.name}</h1>
+        <p className="text-xs text-[#64716B] mt-1 font-medium">Resumen de entrega, métricas de apertura y estado del envío</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total" value={campaign.total_recipients} />
-        <StatCard label="Enviados" value={stats.sent} color="text-wavo-green" />
-        <StatCard label="Entregados" value={stats.delivered} color="text-blue-500" />
-        <StatCard label="Leídos" value={stats.read} color="text-purple-500" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Total Destinatarios" value={campaign.total_recipients} />
+        <StatCard label="Enviados" value={stats.sent} color="text-[#0F8F6F]" />
+        <StatCard label="Entregados" value={stats.delivered} color="text-blue-600" />
+        <StatCard label="Leídos" value={stats.read} color="text-purple-600" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 card">
-          <h2 className="text-sm font-medium text-wavo-text mb-4">Información</h2>
-          <div className="space-y-3">
-            <InfoRow label="Estado" value={campaign.status.toUpperCase()} />
-            <InfoRow label="Template" value={campaign.template_name || 'Sin asignar'} />
-            <InfoRow label="Creada el" value={new Date(campaign.created_at).toLocaleString()} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 card space-y-3">
+          <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider">Detalles del Envío</h2>
+          <div className="space-y-1 divide-y divide-[#E4ECE7]">
+            <InfoRow label="Estado" value={campaign.status?.toUpperCase()} />
+            <InfoRow label="Plantilla" value={campaign.template_name || 'Sin asignar'} />
+            <InfoRow label="Fecha de creación" value={new Date(campaign.created_at).toLocaleString('es-ES')} />
             {campaign.scheduled_at && (
-              <InfoRow label="Programada para" value={new Date(campaign.scheduled_at).toLocaleString()} />
+              <InfoRow label="Programada para" value={new Date(campaign.scheduled_at).toLocaleString('es-ES')} />
             )}
           </div>
         </div>
 
-        <div className="card">
-          <h2 className="text-sm font-medium text-wavo-text mb-4">Fallas</h2>
-          <div className="text-center py-6">
-            <p className="text-2xl font-bold text-red-500">{stats.failed}</p>
-            <p className="text-xs text-wavo-muted">Mensajes fallidos</p>
-          </div>
+        <div className="card text-center flex flex-col justify-center p-6">
+          <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider mb-2">Mensajes Fallidos</h2>
+          <p className="text-3xl font-bold text-red-500">{stats.failed}</p>
+          <p className="text-xs text-[#64716B] mt-1">Rebotes o números no válidos</p>
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, color = 'text-wavo-text' }: any) {
+function StatCard({ label, value, color = 'text-[#17201C]' }: any) {
   return (
-    <div className="card text-center p-6">
-      <p className="text-xs text-wavo-muted uppercase tracking-wider mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    <div className="metric-card text-center p-5">
+      <p className="text-[11px] font-semibold text-[#64716B] uppercase tracking-wider mb-1.5">{label}</p>
+      <p className={`text-2xl lg:text-3xl font-bold tracking-tight ${color}`}>{value}</p>
     </div>
   );
 }
 
 function InfoRow({ label, value }: any) {
   return (
-    <div className="flex justify-between border-b border-wavo-border py-2 text-sm">
-      <span className="text-wavo-muted">{label}</span>
-      <span className="text-wavo-text font-medium">{value}</span>
+    <div className="flex justify-between py-2.5 text-xs">
+      <span className="text-[#64716B] font-medium">{label}</span>
+      <span className="text-[#17201C] font-semibold">{value}</span>
     </div>
   );
 }

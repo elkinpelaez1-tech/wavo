@@ -59,102 +59,105 @@ export default function CampaignsPage() {
 
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-medium text-wavo-text">Campañas</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">Campañas</h1>
+          <p className="text-xs text-[#64716B] mt-1 font-medium">Gestiona y programa tus envíos masivos por WhatsApp</p>
+        </div>
         <a href="/dashboard/campaigns/new" className="btn-primary">+ Nueva campaña</a>
       </div>
 
-      <div className="card">
+      <div className="card overflow-hidden">
         {loading ? (
-          <p className="text-sm text-wavo-muted p-4">Cargando...</p>
+          <p className="text-xs text-[#64716B] p-6 text-center font-medium">Cargando...</p>
         ) : campaigns.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-wavo-muted mb-4">No hay campañas todavía</p>
+            <p className="text-sm text-[#64716B] mb-4">No hay campañas todavía</p>
             <a href="/dashboard/campaigns/new" className="btn-primary">Crear campaña</a>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-wavo-border">
-                <th className="text-left py-3 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Campaña</th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Estado</th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Progreso</th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Programada</th>
-                <th className="py-3 px-2"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-wavo-border">
-              {campaigns.map((c) => (
-                <tr key={c.id} className="hover:bg-wavo-sidebar transition-colors">
-                  <td className="py-3 px-2">
-                    <p className="font-medium text-wavo-text">{c.name}</p>
-                    <p className="text-xs text-wavo-muted">{c.template_name || 'Sin template'}</p>
-                  </td>
-                  <td className="py-3 px-2">{statusBadge(c.status)}</td>
-                  <td className="py-3 px-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-wavo-border rounded-full h-1.5 w-24">
-                        <div
-                          className="bg-wavo-green h-1.5 rounded-full"
-                          style={{ width: `${c.total_recipients > 0 ? (c.sent_count / c.total_recipients) * 100 : 0}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-wavo-muted whitespace-nowrap">
-                        {c.sent_count}/{c.total_recipients}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-2 text-wavo-muted">
-                    {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString('es') : '—'}
-                  </td>
-                  <td className="py-3 px-2 text-right">
-                    <div className="flex gap-2 justify-end">
-                      {['draft', 'scheduled', 'failed'].includes(c.status) && (
-                        <button onClick={() => launch(c.id)} className="btn-primary text-xs py-1 px-3">
-                          Lanzar
-                        </button>
-                      )}
-
-                      <a href={`/dashboard/campaigns/${c.id}`} className="btn-secondary text-xs py-1 px-3">
-                        Ver
-                      </a>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E4ECE7]">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Campaña</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Estado</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Progreso</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Programada</th>
+                  <th className="py-3 px-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E4ECE7]">
+                {campaigns.map((c) => (
+                  <tr key={c.id} className="hover:bg-[#F8FAF9] transition-colors">
+                    <td className="py-3.5 px-3">
+                      <p className="font-semibold text-[#17201C]">{c.name}</p>
+                      <p className="text-xs text-[#64716B]">{c.template_name || 'Sin template'}</p>
+                    </td>
+                    <td className="py-3.5 px-3">{statusBadge(c.status)}</td>
+                    <td className="py-3.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-[#E4ECE7] rounded-full h-1.5 w-24">
+                          <div
+                            className="bg-[#0F8F6F] h-1.5 rounded-full"
+                            style={{ width: `${c.total_recipients > 0 ? (c.sent_count / c.total_recipients) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-[#64716B] whitespace-nowrap">
+                          {c.sent_count}/{c.total_recipients}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-3 text-xs font-medium text-[#64716B]">
+                      {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString('es') : '—'}
+                    </td>
+                    <td className="py-3.5 px-3 text-right">
+                      <div className="flex gap-2 justify-end">
+                        {['draft', 'scheduled', 'failed'].includes(c.status) && (
+                          <button onClick={() => launch(c.id)} className="btn-primary text-xs py-1.5 px-3">
+                            Lanzar
+                          </button>
+                        )}
+
+                        <a href={`/dashboard/campaigns/${c.id}`} className="btn-secondary text-xs py-1.5 px-3">
+                          Ver
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Modal de Upgrade */}
       {showUpgrade && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#FDF8E1] rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🚀</span>
-              </div>
-              <h3 className="text-xl font-bold text-[#2c2a1e] mb-2">¡Límite de campañas!</h3>
-              <p className="text-[#908c72] text-sm mb-6 leading-relaxed">
-                Has alcanzado el límite de <span className="font-bold text-[#2c2a1e]">1 campaña activa</span> de tu plan <span className="font-bold text-wavo-green">FREE</span>. 
-                Actualiza a <span className="font-bold text-[#2c2a1e]">PRO</span> para lanzar múltiples campañas simultáneas.
-              </p>
-              <div className="flex flex-col gap-3">
-                <a 
-                  href="/upgrade" 
-                  className="bg-wavo-green hover:bg-[#0F6E56] text-white py-3 rounded-xl font-semibold transition-all shadow-lg shadow-wavo-green/20"
-                >
-                  Actualizar a PRO
-                </a>
-                <button 
-                  onClick={() => setShowUpgrade(false)}
-                  className="text-[#908c72] hover:text-[#2c2a1e] text-sm font-medium py-2"
-                >
-                  Cerrar
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-[#E4ECE7] shadow-xl text-center">
+            <div className="w-14 h-14 bg-[#E8F7F0] text-[#0F8F6F] rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-2xs">
+              🚀
+            </div>
+            <h3 className="text-lg font-bold text-[#17201C] mb-2 tracking-tight">¡Límite de campañas alcanzado!</h3>
+            <p className="text-xs text-[#64716B] leading-relaxed mb-6 font-medium">
+              Has alcanzado el límite de <span className="font-semibold text-[#17201C]">1 campaña activa</span> de tu plan <span className="inline-block bg-[#E8F7F0] text-[#0F8F6F] px-2 py-0.5 rounded text-[11px] font-bold">FREE</span>. 
+              Actualiza a <span className="font-semibold text-[#17201C]">PRO</span> para lanzar múltiples campañas simultáneas.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <a 
+                href="/upgrade" 
+                className="bg-[#087F5B] hover:bg-[#065F46] text-white py-2.5 px-4 rounded-xl text-xs font-semibold transition-colors shadow-2xs text-center"
+              >
+                Actualizar a Plan PRO
+              </a>
+              <button 
+                onClick={() => setShowUpgrade(false)}
+                className="text-xs text-[#64716B] hover:text-[#17201C] font-medium py-2 transition-colors"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

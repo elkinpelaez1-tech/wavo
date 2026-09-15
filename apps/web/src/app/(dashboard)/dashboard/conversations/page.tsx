@@ -600,7 +600,7 @@ export default function ConversationsPage() {
                 )}
                 <button
                   onClick={() => setShowMobileDetails(!showMobileDetails)}
-                  className="lg:hidden p-2 text-wavo-muted hover:text-wavo-text rounded-lg hover:bg-wavo-sidebar"
+                  className="lg:hidden p-2 text-wavo-muted hover:text-wavo-text rounded-lg hover:bg-[#F8FAF9] transition-colors"
                   title="Ver datos del contacto"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

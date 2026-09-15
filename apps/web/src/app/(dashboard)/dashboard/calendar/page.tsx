@@ -32,42 +32,45 @@ export default function CalendarPage() {
   const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-medium text-wavo-text">Calendario</h1>
-        <div className="flex items-center gap-3">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">Calendario</h1>
+          <p className="text-xs text-[#64716B] mt-1 font-medium">Cronograma de campañas programadas y envíos activos</p>
+        </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setCurrent((d) => new Date(d.getFullYear(), d.getMonth() - 1))}
-            className="btn-secondary px-3 py-1 text-sm"
+            className="btn-secondary px-3 py-1.5 text-xs shadow-2xs font-semibold"
           >
             ←
           </button>
-          <span className="text-sm font-medium text-wavo-text capitalize">
+          <span className="text-xs font-bold text-[#17201C] capitalize bg-[#F8FAF9] border border-[#E4ECE7] px-3 py-1.5 rounded-lg shadow-2xs">
             {format(current, 'MMMM yyyy', { locale: es })}
           </span>
           <button
             onClick={() => setCurrent((d) => new Date(d.getFullYear(), d.getMonth() + 1))}
-            className="btn-secondary px-3 py-1 text-sm"
+            className="btn-secondary px-3 py-1.5 text-xs shadow-2xs font-semibold"
           >
             →
           </button>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card space-y-4">
         {/* Day headers */}
-        <div className="grid grid-cols-7 mb-2">
+        <div className="grid grid-cols-7 border-b border-[#E4ECE7] pb-2">
           {dayNames.map((d) => (
-            <div key={d} className="text-center text-xs font-medium text-wavo-muted py-2">
+            <div key={d} className="text-center text-xs font-semibold text-[#64716B] uppercase tracking-wider py-1">
               {d}
             </div>
           ))}
         </div>
 
         {/* Days grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {Array.from({ length: firstDow }).map((_, i) => (
-            <div key={`empty-${i}`} />
+            <div key={`empty-${i}`} className="min-h-[64px]" />
           ))}
           {days.map((day) => {
             const hasC = hasCampaign(day);
@@ -77,19 +80,24 @@ export default function CalendarPage() {
             return (
               <div
                 key={day.toISOString()}
-                className={`relative min-h-[56px] p-1 rounded-lg border transition-colors
-                  ${todayDay ? 'bg-wavo-green border-wavo-green' : hasC ? 'bg-wavo-mist border-wavo-foam' : 'border-transparent hover:bg-wavo-sidebar'}`}
+                className={`relative min-h-[64px] p-1.5 rounded-xl border transition-colors ${
+                  todayDay
+                    ? 'bg-[#0F8F6F] border-[#0F8F6F] shadow-2xs'
+                    : hasC
+                    ? 'bg-[#E8F7F0] border-[#0F8F6F]/30'
+                    : 'border-transparent hover:bg-[#F8FAF9]'
+                }`}
               >
-                <span className={`text-xs font-medium ${todayDay ? 'text-white' : hasC ? 'text-wavo-deep' : 'text-wavo-muted'}`}>
+                <span className={`text-xs font-bold ${todayDay ? 'text-white' : hasC ? 'text-[#065F46]' : 'text-[#64716B]'}`}>
                   {format(day, 'd')}
                 </span>
                 {dayCampaigns.slice(0, 2).map((c) => (
-                  <div key={c.id} className="mt-0.5 text-xs truncate text-wavo-deep bg-white/60 rounded px-1">
+                  <div key={c.id} className="mt-1 text-[11px] font-medium truncate text-[#065F46] bg-white/80 border border-[#0F8F6F]/10 rounded-md px-1.5 py-0.5 shadow-2xs">
                     {c.name}
                   </div>
                 ))}
                 {dayCampaigns.length > 2 && (
-                  <div className="text-xs text-wavo-muted">+{dayCampaigns.length - 2}</div>
+                  <div className="text-[10px] text-[#64716B] font-semibold mt-0.5">+{dayCampaigns.length - 2}</div>
                 )}
               </div>
             );
@@ -97,13 +105,13 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 mt-4 pt-4 border-t border-wavo-border">
-          <div className="flex items-center gap-2 text-xs text-wavo-muted">
-            <div className="w-3 h-3 rounded-sm bg-wavo-mist border border-wavo-foam" />
+        <div className="flex gap-4 pt-3 border-t border-[#E4ECE7]">
+          <div className="flex items-center gap-2 text-xs text-[#64716B] font-medium">
+            <div className="w-3 h-3 rounded-md bg-[#E8F7F0] border border-[#0F8F6F]/30" />
             Con campaña
           </div>
-          <div className="flex items-center gap-2 text-xs text-wavo-muted">
-            <div className="w-3 h-3 rounded-sm bg-wavo-green" />
+          <div className="flex items-center gap-2 text-xs text-[#64716B] font-medium">
+            <div className="w-3 h-3 rounded-md bg-[#0F8F6F]" />
             Hoy
           </div>
         </div>

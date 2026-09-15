@@ -140,116 +140,125 @@ export default function ContactsPage() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-medium text-wavo-text">Contactos</h1>
-        <label className="btn-secondary cursor-pointer text-sm">
-          Importar CSV
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">Contactos</h1>
+          <p className="text-xs text-[#64716B] mt-1 font-medium">Administra tu base de contactos y audiencias segmentadas</p>
+        </div>
+        <label className="btn-secondary cursor-pointer text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-2xs">
+          <span>📥</span> Importar CSV
           <input type="file" accept=".csv" className="hidden" onChange={handleCSV} />
         </label>
       </div>
 
       {/* Agregar contacto */}
-      <div className="card mb-4">
-        <h2 className="text-sm font-medium text-wavo-text mb-3">Agregar contacto</h2>
-        <form onSubmit={handleAdd} className="flex gap-3">
+      <div className="card space-y-3">
+        <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider">Agregar nuevo contacto</h2>
+        <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
           <input
             className="input flex-1"
-            placeholder="Nombre"
+            placeholder="Nombre completo"
             value={form.name}
             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             required
           />
           <input
-            className="input flex-1"
-            placeholder="+57300..."
+            className="input flex-1 font-mono"
+            placeholder="+573001234567"
             value={form.phone}
             onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
             required
           />
           <input
             className="input flex-1"
-            placeholder="Etiquetas (vips, bogota...)"
+            placeholder="Etiquetas (vip, cliente...)"
             value={form.tags}
             onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
           />
           <button type="submit" className="btn-primary shrink-0" disabled={saving}>
-
-            {saving ? '...' : 'Agregar'}
+            {saving ? 'Guardando...' : 'Agregar'}
           </button>
         </form>
-        <p className="text-xs text-wavo-muted mt-2">
-          CSV formato: nombre,telefono (una fila por contacto, sin encabezado en primera fila o con)
+        <p className="text-[11px] text-[#64716B]">
+          Formato CSV sugerido: <code className="bg-[#F8FAF9] px-1.5 py-0.5 rounded border border-[#E4ECE7] font-mono text-[10px]">nombre,telefono,etiquetas</code>
         </p>
       </div>
 
       {/* Lista */}
-      <div className="card">
-        <p className="text-xs text-wavo-muted mb-3">{contacts.length} contactos activos</p>
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between pb-3 mb-2 border-b border-[#E4ECE7]">
+          <h2 className="text-xs font-semibold text-[#17201C]">Directorio de Contactos</h2>
+          <span className="text-xs font-medium text-[#64716B]">{contacts.length} contactos registrados</span>
+        </div>
         {loading ? (
-          <p className="text-sm text-wavo-muted">Cargando...</p>
+          <p className="text-xs text-[#64716B] p-6 text-center font-medium">Cargando...</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-wavo-border">
-                <th className="text-left py-2 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Nombre</th>
-                <th className="text-left py-2 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Teléfono</th>
-                <th className="text-left py-2 px-2 text-xs font-medium text-wavo-muted uppercase tracking-wide">Etiquetas</th>
-                <th className="py-2 px-2"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-wavo-border">
-              {contacts.map((c) => (
-                <tr key={c.id} className="hover:bg-wavo-sidebar">
-                  <td className="py-2 px-2 text-wavo-text">{c.name}</td>
-                  <td className="py-2 px-2 text-wavo-muted font-mono text-xs">{c.phone}</td>
-                  <td className="py-2 px-2">
-                    {c.tags?.map((t: string) => (
-                      <span key={t} className="badge-blue mr-1">{t}</span>
-                    ))}
-                  </td>
-                  <td className="py-2 px-2 text-right">
-                    <button
-                      onClick={() => handleDelete(c.id)}
-                      className="text-xs text-red-400 hover:text-red-600"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E4ECE7]">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Nombre</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Teléfono</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-[#64716B] uppercase tracking-wide">Etiquetas</th>
+                  <th className="py-3 px-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E4ECE7]">
+                {contacts.map((c) => (
+                  <tr key={c.id} className="hover:bg-[#F8FAF9] transition-colors">
+                    <td className="py-3 px-3 font-semibold text-[#17201C]">{c.name}</td>
+                    <td className="py-3 px-3 text-[#64716B] font-mono text-xs">{c.phone}</td>
+                    <td className="py-3 px-3">
+                      <div className="flex flex-wrap gap-1">
+                        {c.tags?.map((t: string) => (
+                          <span key={t} className="bg-[#E8F7F0] text-[#0F8F6F] border border-[#0F8F6F]/20 text-[11px] px-2 py-0.5 rounded-md font-medium">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <button
+                        onClick={() => handleDelete(c.id)}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Modal de Upgrade */}
       {showUpgrade && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#FDF8E1] rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🚀</span>
-              </div>
-              <h3 className="text-xl font-bold text-[#2c2a1e] mb-2">¡Límite alcanzado!</h3>
-              <p className="text-[#908c72] text-sm mb-6 leading-relaxed">
-                Has alcanzado el límite de tu plan <span className="font-bold text-wavo-green">FREE</span>. 
-                Actualiza a <span className="font-bold text-[#2c2a1e]">PRO</span> para importar contactos ilimitados y lanzar campañas masivas.
-              </p>
-              <div className="flex flex-col gap-3">
-                <a 
-                  href="/upgrade" 
-                  className="bg-wavo-green hover:bg-[#0F6E56] text-white py-3 rounded-xl font-semibold transition-all shadow-lg shadow-wavo-green/20"
-                >
-                  Actualizar a PRO
-                </a>
-                <button 
-                  onClick={() => setShowUpgrade(false)}
-                  className="text-[#908c72] hover:text-[#2c2a1e] text-sm font-medium py-2"
-                >
-                  Seguir con mi plan actual
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-[#E4ECE7] shadow-xl text-center">
+            <div className="w-14 h-14 bg-[#E8F7F0] text-[#0F8F6F] rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-2xs">
+              🚀
+            </div>
+            <h3 className="text-lg font-bold text-[#17201C] mb-2 tracking-tight">¡Límite de contactos alcanzado!</h3>
+            <p className="text-xs text-[#64716B] leading-relaxed mb-6 font-medium">
+              Has alcanzado el límite de tu plan <span className="inline-block bg-[#E8F7F0] text-[#0F8F6F] px-2 py-0.5 rounded text-[11px] font-bold">FREE</span>. 
+              Actualiza a <span className="font-semibold text-[#17201C]">PRO</span> para importar contactos ilimitados y segmentar campañas avanzadas.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <a 
+                href="/upgrade" 
+                className="bg-[#087F5B] hover:bg-[#065F46] text-white py-2.5 px-4 rounded-xl text-xs font-semibold transition-colors shadow-2xs text-center"
+              >
+                Actualizar a Plan PRO
+              </a>
+              <button 
+                onClick={() => setShowUpgrade(false)}
+                className="text-xs text-[#64716B] hover:text-[#17201C] font-medium py-2 transition-colors"
+              >
+                Seguir con mi plan actual
+              </button>
             </div>
           </div>
         </div>

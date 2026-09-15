@@ -189,29 +189,26 @@ export default function ProfilePage() {
     : '—';
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       {/* Encabezado */}
-      <div className="flex items-center gap-3 mb-6">
-        <a href="/dashboard" className="text-wavo-muted hover:text-wavo-text text-sm transition-colors">
-          ← Panel
-        </a>
-        <span className="text-wavo-border">/</span>
-        <h1 className="text-lg font-semibold text-wavo-text">Mi perfil</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-[#17201C] tracking-tight">Mi Perfil</h1>
+        <p className="text-xs text-[#64716B] mt-1 font-medium">Gestiona tu identidad, datos de negocio y credenciales de acceso</p>
       </div>
 
       <div className="space-y-6">
         {/* Bloque 1: Foto de perfil / Logo */}
         <div className="card space-y-4">
-          <div className="border-b border-wavo-border/60 pb-3">
-            <h2 className="text-sm font-semibold text-wavo-text">Foto de perfil / Logo</h2>
-            <p className="text-xs text-wavo-muted mt-0.5">
+          <div className="border-b border-[#E4ECE7] pb-3">
+            <h2 className="text-sm font-semibold text-[#17201C]">Foto de perfil / Logo</h2>
+            <p className="text-xs text-[#64716B] mt-0.5">
               Personaliza tu imagen de perfil o el logo de tu empresa.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             {/* Contenedor del Avatar */}
-            <div className="w-20 h-20 rounded-full bg-[#E1F5EE] text-[#0F6E56] text-2xl font-bold border-2 border-[#1D9E75]/30 shadow-sm overflow-hidden flex items-center justify-center shrink-0 uppercase relative">
+            <div className="w-20 h-20 rounded-2xl bg-[#E8F7F0] text-[#0F8F6F] text-2xl font-bold border border-[#0F8F6F]/20 shadow-2xs overflow-hidden flex items-center justify-center shrink-0 uppercase relative">
               {preview ? (
                 <img src={preview} alt="Vista previa" className="w-full h-full object-cover" />
               ) : user?.avatar_url ? (
@@ -235,7 +232,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-white border border-[#EDE8D0] text-[#2c2a1e] px-4 py-2 rounded-lg text-xs font-medium hover:bg-[#FDFCF5] hover:border-[#1D9E75] transition-colors shadow-sm cursor-pointer"
+                  className="btn-secondary text-xs py-2 px-3.5 shadow-2xs"
                   disabled={savingAvatar}
                 >
                   {selectedFile ? 'Elegir otra imagen' : 'Cambiar imagen'}
@@ -246,16 +243,16 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={handleSaveAvatar}
-                      className="btn-primary text-xs py-2 px-4 shadow-sm"
+                      className="btn-primary text-xs py-2 px-4 shadow-2xs"
                       disabled={savingAvatar}
                     >
-                      {savingAvatar ? 'Guardando imagen...' : 'Guardar imagen'}
+                      {savingAvatar ? 'Guardando...' : 'Guardar imagen'}
                     </button>
 
                     <button
                       type="button"
                       onClick={handleCancelAvatar}
-                      className="text-xs text-wavo-muted hover:text-red-600 transition-colors px-2 py-1"
+                      className="text-xs text-[#64716B] hover:text-red-600 transition-colors px-2 py-1 font-medium"
                       disabled={savingAvatar}
                     >
                       Cancelar
@@ -264,7 +261,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              <p className="text-[11px] text-wavo-muted">
+              <p className="text-[11px] text-[#64716B]">
                 Formatos permitidos: JPG, PNG o WEBP. Tamaño máximo: 2 MB.
               </p>
             </div>
@@ -287,18 +284,18 @@ export default function ProfilePage() {
 
         {/* Bloque A: Información de la cuenta */}
         <div className="card space-y-4">
-          <div className="flex items-center justify-between border-b border-wavo-border/60 pb-3">
+          <div className="flex items-center justify-between border-b border-[#E4ECE7] pb-3">
             <div>
-              <h2 className="text-sm font-semibold text-wavo-text">Información de la cuenta</h2>
-              <p className="text-xs text-wavo-muted mt-0.5">
+              <h2 className="text-sm font-semibold text-[#17201C]">Información de la cuenta</h2>
+              <p className="text-xs text-[#64716B] mt-0.5">
                 Gestiona tus datos personales y comerciales asociados a Wavo.
               </p>
             </div>
             <span
-              className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+              className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase ${
                 user?.plan === 'pro'
-                  ? 'bg-wavo-green/10 text-wavo-green border border-wavo-green/20'
-                  : 'bg-[#EDE8D0] text-[#908c72]'
+                  ? 'bg-[#E8F7F0] text-[#0F8F6F] border border-[#0F8F6F]/20'
+                  : 'bg-[#F8FAF9] text-[#64716B] border border-[#E4ECE7]'
               }`}
             >
               Plan {user?.plan || 'free'}
@@ -342,19 +339,19 @@ export default function ProfilePage() {
                 <label className="label">Correo electrónico</label>
                 <input
                   type="email"
-                  className="input bg-wavo-sidebar/40 text-wavo-muted cursor-not-allowed"
+                  className="input bg-[#F8FAF9] border-[#E4ECE7] text-[#64716B] cursor-not-allowed font-medium"
                   value={user?.email || ''}
                   disabled
                   title="El correo electrónico no puede ser modificado"
                 />
-                <p className="text-[11px] text-wavo-muted mt-1">El correo es tu identificador de acceso único.</p>
+                <p className="text-[11px] text-[#64716B] mt-1 font-medium">El correo es tu identificador de acceso único.</p>
               </div>
 
               <div>
                 <label className="label">Fecha de registro</label>
                 <input
                   type="text"
-                  className="input bg-wavo-sidebar/40 text-wavo-muted cursor-not-allowed capitalize"
+                  className="input bg-[#F8FAF9] border-[#E4ECE7] text-[#64716B] cursor-not-allowed capitalize font-medium"
                   value={formattedDate}
                   disabled
                 />
@@ -378,7 +375,7 @@ export default function ProfilePage() {
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                className="btn-primary text-xs py-2 px-4"
+                className="btn-primary text-xs py-2 px-4 shadow-2xs"
                 disabled={savingAccount}
               >
                 {savingAccount ? 'Guardando...' : 'Guardar cambios'}
@@ -389,9 +386,9 @@ export default function ProfilePage() {
 
         {/* Bloque B: Seguridad y Contraseña */}
         <div className="card space-y-4">
-          <div className="border-b border-wavo-border/60 pb-3">
-            <h2 className="text-sm font-semibold text-wavo-text">Seguridad</h2>
-            <p className="text-xs text-wavo-muted mt-0.5">
+          <div className="border-b border-[#E4ECE7] pb-3">
+            <h2 className="text-sm font-semibold text-[#17201C]">Seguridad</h2>
+            <p className="text-xs text-[#64716B] mt-0.5">
               Actualiza tu contraseña para mantener protegida tu cuenta.
             </p>
           </div>
@@ -461,7 +458,7 @@ export default function ProfilePage() {
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                className="bg-[#2c2a1e] hover:bg-black text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors shadow-sm"
+                className="btn-primary text-xs py-2 px-4 shadow-2xs"
                 disabled={savingPassword}
               >
                 {savingPassword ? 'Cambiando contraseña...' : 'Cambiar contraseña'}
