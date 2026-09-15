@@ -555,7 +555,7 @@ export default function ConversationsPage() {
       {/* ÁREA CENTRAL: HISTORIAL DE MENSAJES                       */}
       {/* ========================================================= */}
       <div
-        className={`flex-1 flex flex-col bg-wavo-sand/40 min-w-0 ${
+        className={`flex-1 flex flex-col bg-[#F6FBF1] min-w-0 ${
           !selectedId ? 'hidden md:flex' : 'flex'
         }`}
       >
@@ -682,7 +682,7 @@ export default function ConversationsPage() {
             </div>
 
             {/* Compositor de Mensajes - Etapa 2C */}
-            <div className="p-3.5 bg-wavo-card border-t border-wavo-border flex-shrink-0">
+            <div className="p-3.5 bg-wavo-card border-t border-wavo-border shadow-[0_-1px_3px_rgba(0,0,0,0.02)] flex-shrink-0">
               {sendError && (
                 <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start justify-between gap-2 shadow-2xs">
                   <div className="flex items-start gap-2">
@@ -722,19 +722,19 @@ export default function ConversationsPage() {
                       disabled={isSending}
                       placeholder="Escribe un mensaje... (Enter para enviar, Shift + Enter para salto de línea)"
                       rows={Math.min(Math.max(inputBody.split('\n').length, 1), 5)}
-                      className="flex-1 max-h-32 min-h-[44px] py-3 px-3.5 text-xs rounded-xl bg-wavo-sand border border-wavo-border text-wavo-text placeholder-wavo-muted focus:outline-none focus:ring-2 focus:ring-wavo-green resize-none disabled:opacity-60 transition-all"
+                      className="flex-1 max-h-32 min-h-[44px] py-3 px-3.5 text-xs rounded-xl bg-white border border-wavo-border text-wavo-text placeholder-wavo-muted focus:outline-none focus:ring-2 focus:ring-[#1B6327] resize-none disabled:opacity-60 transition-all shadow-2xs"
                     />
                     <button
                       type="submit"
                       disabled={!inputBody.trim() || isSending}
-                      className="btn-primary h-[44px] px-4 flex items-center justify-center gap-1.5 text-xs rounded-xl disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 shadow-2xs"
+                      className="bg-[#1B6327] hover:bg-[#144D1E] active:bg-[#0F3A17] text-white font-semibold h-[44px] px-4 flex items-center justify-center gap-1.5 text-xs rounded-xl disabled:bg-[#1B6327]/35 disabled:cursor-not-allowed disabled:text-white/60 flex-shrink-0 shadow-xs transition-colors cursor-pointer"
                     >
                       {isSending ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <>
-                          <span className="hidden sm:inline font-medium">Enviar</span>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="hidden sm:inline font-semibold">Enviar</span>
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                           </svg>
                         </>
@@ -744,7 +744,7 @@ export default function ConversationsPage() {
 
                   <div className="flex items-center justify-between text-[10px] text-wavo-muted px-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-wavo-green" />
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#1B6327]" />
                       Envío directo vía WhatsApp Cloud API
                     </span>
                     <span className="hidden sm:inline opacity-75">
@@ -757,7 +757,7 @@ export default function ConversationsPage() {
           </>
         ) : (
           /* Estado Vacío cuando no hay chat seleccionado */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-wavo-sand/20">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#F6FBF1]">
             <div className="w-16 h-16 rounded-2xl bg-wavo-mist text-wavo-green flex items-center justify-center text-3xl mb-4 border border-wavo-green/20 shadow-xs">
               💬
             </div>
