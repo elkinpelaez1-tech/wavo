@@ -27,7 +27,7 @@ export class CreateContactDto {
 export class ContactsService {
   constructor(private supabase: SupabaseService) { }
 
-  async findAll(userId: string, page = 1, limit = 50, tag?: string) {
+  async findAll(userId: string, page = 1, limit = 50, tag?: string, search?: string) {
     const from = (page - 1) * limit;
     let query = this.supabase.client
       .from('contacts')
@@ -38,6 +38,11 @@ export class ContactsService {
 
     if (tag && tag.trim()) {
       query = query.contains('tags', [tag.trim()]);
+    }
+
+    if (search && search.trim()) {
+      const s = search.trim();
+      query = query.or(`name.ilike.%${s}%,phone.ilike.%${s}%,phone_normalized.ilike.%${s}%`);
     }
 
     const { data, count, error } = await query

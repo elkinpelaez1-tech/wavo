@@ -16,8 +16,9 @@ export class ContactsController {
     @Query('page') page = '1',
     @Query('limit') limit = '50',
     @Query('tag') tag?: string,
+    @Query('search') search?: string,
   ) {
-    return this.contacts.findAll(req.user.id, +page, +limit, tag);
+    return this.contacts.findAll(req.user.id, +page, +limit, tag, search);
   }
 
   @Get('tags')

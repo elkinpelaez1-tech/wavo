@@ -1,21 +1,41 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import api from '@/lib/api';
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [form, setForm] = useState({ name: '', phone: '', tags: '' });
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const load = () =>
-    api.get('/contacts').then(({ data }) => {
-      setContacts(data.data || []);
+  const load = () => {
+    setLoading(true);
+    api.get('/contacts?limit=1000').then(({ data }) => {
+      const list = data.data || [];
+      setContacts(list);
+      setTotalCount(data.total !== undefined ? data.total : list.length);
+      setLoading(false);
+    }).catch((err) => {
+      console.error("[ContactsPage] Error al cargar contactos:", err);
       setLoading(false);
     });
+  };
 
   useEffect(() => { load(); }, []);
+
+  const filteredContacts = useMemo(() => {
+    if (!searchQuery.trim()) return contacts;
+    const q = searchQuery.toLowerCase().trim();
+    return contacts.filter((c) => {
+      const nameMatch = (c.name || '').toLowerCase().includes(q);
+      const phoneMatch = (c.phone || '').includes(q) || (c.phone_normalized || '').includes(q);
+      const tagsMatch = Array.isArray(c.tags) && c.tags.some((t: string) => (t || '').toLowerCase().includes(q));
+      return nameMatch || phoneMatch || tagsMatch;
+    });
+  }, [contacts, searchQuery]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,13 +206,62 @@ export default function ContactsPage() {
       </div>
 
       {/* Lista */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between pb-3 mb-2 border-b border-[#E4ECE7]">
-          <h2 className="text-xs font-semibold text-[#17201C]">Directorio de Contactos</h2>
-          <span className="text-xs font-medium text-[#64716B]">{contacts.length} contactos registrados</span>
+      <div className="card overflow-hidden space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E4ECE7]">
+          <div>
+            <h2 className="text-sm font-bold text-[#17201C]">Directorio de Contactos</h2>
+            <p className="text-xs text-[#64716B] mt-0.5 font-medium">
+              {searchQuery.trim()
+                ? `Mostrando ${filteredContacts.length} de ${totalCount} contactos registrados`
+                : `${totalCount} ${totalCount === 1 ? 'contacto registrado' : 'contactos registrados'}`}
+            </p>
+          </div>
+
+          {/* Buscador de contactos */}
+          <div className="w-full sm:w-72 relative">
+            <input
+              type="text"
+              className="input text-xs py-2 pl-8 pr-7"
+              placeholder="Buscar por nombre o teléfono..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#64716B] pointer-events-none">
+              🔍
+            </span>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#64716B] hover:text-[#17201C] font-semibold"
+                title="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
+
         {loading ? (
-          <p className="text-xs text-[#64716B] p-6 text-center font-medium">Cargando...</p>
+          <p className="text-xs text-[#64716B] p-6 text-center font-medium">Cargando contactos...</p>
+        ) : contacts.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-sm font-semibold text-[#17201C] mb-1">No hay contactos todavía</p>
+            <p className="text-xs text-[#64716B]">Agrega tu primer contacto arriba o importa un archivo CSV.</p>
+          </div>
+        ) : filteredContacts.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-sm font-semibold text-[#17201C] mb-1">No se encontraron contactos</p>
+            <p className="text-xs text-[#64716B]">
+              Ningún contacto coincide con &quot;<span className="font-semibold text-[#17201C]">{searchQuery}</span>&quot;.
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="btn-secondary text-xs py-1.5 px-3 mt-3 inline-block"
+            >
+              Limpiar búsqueda
+            </button>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -205,7 +274,7 @@ export default function ContactsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E4ECE7]">
-                {contacts.map((c) => (
+                {filteredContacts.map((c) => (
                   <tr key={c.id} className="hover:bg-[#F8FAF9] transition-colors">
                     <td className="py-3 px-3 font-semibold text-[#17201C]">{c.name}</td>
                     <td className="py-3 px-3 text-[#64716B] font-mono text-xs">{c.phone}</td>

@@ -77,6 +77,27 @@ describe('ContactsService', () => {
       expect(supabaseClientMock.contains).toHaveBeenCalledWith('tags', ['Docentes']);
       expect(result).toEqual({ data: mockContacts, total: 1, page: 1, limit: 50 });
     });
+
+    it('should apply .or() when search is provided', async () => {
+      const mockContacts = [
+        { id: 'c1', name: 'Stefany', phone: '573184370000', tags: [] },
+      ];
+
+      supabaseClientMock.or = jest.fn().mockReturnThis();
+      supabaseClientMock.order.mockResolvedValueOnce({
+        data: mockContacts,
+        count: 1,
+        error: null,
+      });
+
+      const result = await service.findAll('user-1', 1, 50, undefined, 'Stefany');
+
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.or).toHaveBeenCalledWith(
+        'name.ilike.%Stefany%,phone.ilike.%Stefany%,phone_normalized.ilike.%Stefany%',
+      );
+      expect(result).toEqual({ data: mockContacts, total: 1, page: 1, limit: 50 });
+    });
   });
 
   describe('getTags', () => {
