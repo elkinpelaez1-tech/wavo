@@ -13,6 +13,8 @@ import { QueueModule } from './queue/queue.module';
 import { getRedisConnection } from './queue/redis.config';
 import { WorkerModule } from './workers/worker.module';
 
+import { ConversationsModule } from './conversations/conversations.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -31,6 +33,7 @@ import { WorkerModule } from './workers/worker.module';
     MetaModule,
     QueueModule,
     WorkerModule,
+    ConversationsModule,
   ],
 })
 export class AppModule {}

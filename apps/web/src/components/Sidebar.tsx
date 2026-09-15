@@ -3,13 +3,14 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 const navItems = [
-  { href: '/dashboard',            label: 'Panel' },
-  { href: '/dashboard/campaigns',  label: 'Campañas' },
-  { href: '/dashboard/contacts',   label: 'Contactos' },
-  { href: '/dashboard/calendar',   label: 'Calendario' },
-  { href: '/dashboard/templates',  label: 'Templates' },
-  { href: '/dashboard/stats',      label: 'Estadísticas' },
-  { href: '/dashboard/settings',   label: 'Configuración' },
+  { href: '/dashboard',               label: 'Panel' },
+  { href: '/dashboard/conversations',  label: 'Conversaciones' },
+  { href: '/dashboard/campaigns',     label: 'Campañas' },
+  { href: '/dashboard/contacts',      label: 'Contactos' },
+  { href: '/dashboard/calendar',      label: 'Calendario' },
+  { href: '/dashboard/templates',     label: 'Templates' },
+  { href: '/dashboard/stats',         label: 'Estadísticas' },
+  { href: '/dashboard/settings',      label: 'Configuración' },
 ];
 
 export default function Sidebar() {
