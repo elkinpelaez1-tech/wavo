@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, UseGuards, Request,
+  Body, Param, Query, UseGuards, Request,
 } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
@@ -44,5 +44,19 @@ export class CampaignsController {
   @Get(':id/stats')
   stats(@Param('id') id: string, @Request() req) {
     return this.campaigns.getStats(id, req.user.id);
+  }
+
+  @Get(':id/recipients')
+  getRecipients(
+    @Param('id') id: string,
+    @Query('status') status: string,
+    @Request() req,
+  ) {
+    return this.campaigns.getRecipients(id, req.user.id, status);
+  }
+
+  @Post(':id/depurate-failed')
+  depurateFailed(@Param('id') id: string, @Request() req) {
+    return this.campaigns.depurateFailedRecipients(id, req.user.id);
   }
 }

@@ -123,4 +123,57 @@ describe('ContactsService', () => {
       expect(tags).toEqual(['Cliente', 'Docentes', 'docentes', 'VIP'].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' })));
     });
   });
+
+  describe('remove and removeBulk (Soft Delete)', () => {
+    it('1. should soft delete a single contact setting deleted_at matching id and user_id', async () => {
+      supabaseClientMock.update.mockReturnValueOnce({
+        eq: jest.fn().mockReturnValueOnce({
+          eq: jest.fn().mockResolvedValueOnce({
+            data: null,
+            error: null,
+          }),
+        }),
+      });
+
+      const result = await service.remove('c-1', 'user-1');
+
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deleted_at: expect.any(String),
+        }),
+      );
+      expect(result).toEqual({ deleted: true });
+    });
+
+    it('2. should soft delete multiple contacts in bulk scoped to user_id', async () => {
+      supabaseClientMock.update.mockReturnValueOnce({
+        in: jest.fn().mockReturnValueOnce({
+          eq: jest.fn().mockReturnValueOnce({
+            is: jest.fn().mockReturnValueOnce({
+              select: jest.fn().mockResolvedValueOnce({
+                data: [{ id: 'c-1' }, { id: 'c-2' }],
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const result = await service.removeBulk(['c-1', 'c-2'], 'user-1');
+
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deleted_at: expect.any(String),
+        }),
+      );
+      expect(result).toEqual({ deleted_count: 2 });
+    });
+
+    it('3. should return 0 if empty array is passed to removeBulk', async () => {
+      const result = await service.removeBulk([], 'user-1');
+      expect(result).toEqual({ deleted_count: 0 });
+    });
+  });
 });

@@ -245,4 +245,19 @@ export class ContactsService {
     if (error) throw new Error(error.message);
     return { deleted: true };
   }
+
+  async removeBulk(ids: string[], userId: string) {
+    if (!ids || ids.length === 0) return { deleted_count: 0 };
+
+    const { data, error } = await this.supabase.client
+      .from('contacts')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', ids)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .select('id');
+
+    if (error) throw new Error(error.message);
+    return { deleted_count: data?.length || 0 };
+  }
 }

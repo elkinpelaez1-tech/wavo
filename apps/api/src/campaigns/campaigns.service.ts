@@ -220,6 +220,101 @@ export class CampaignsService {
     };
   }
 
+  async getRecipients(campaignId: string, userId: string, status?: string) {
+    // 1. Validar que la campaña pertenece al usuario autenticado
+    await this.findOne(campaignId, userId);
+
+    // 2. Consultar destinatarios con los datos del contacto
+    let query = this.supabase.client
+      .from('campaign_recipients')
+      .select(`
+        id,
+        campaign_id,
+        contact_id,
+        status,
+        message_id,
+        error_message,
+        sent_at,
+        delivered_at,
+        read_at,
+        contacts (
+          id,
+          name,
+          phone,
+          phone_normalized,
+          whatsapp_status,
+          deleted_at
+        )
+      `)
+      .eq('campaign_id', campaignId);
+
+    if (status && status.trim()) {
+      query = query.eq('status', status.trim());
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    return (data || []).map((row: any) => {
+      const contact = Array.isArray(row.contacts) ? row.contacts[0] : row.contacts;
+      return {
+        id: row.id,
+        campaign_id: row.campaign_id,
+        contact_id: row.contact_id,
+        status: row.status,
+        message_id: row.message_id,
+        error_message: row.error_message,
+        sent_at: row.sent_at,
+        delivered_at: row.delivered_at,
+        read_at: row.read_at,
+        contact: contact ? {
+          id: contact.id,
+          name: contact.name,
+          phone: contact.phone,
+          phone_normalized: contact.phone_normalized,
+          whatsapp_status: contact.whatsapp_status,
+          deleted_at: contact.deleted_at,
+        } : null,
+        is_deleted: !!contact?.deleted_at,
+      };
+    });
+  }
+
+  async depurateFailedRecipients(campaignId: string, userId: string) {
+    // 1. Validar que la campaña pertenece al usuario autenticado
+    await this.findOne(campaignId, userId);
+
+    // 2. Obtener los contact_ids de los destinatarios fallidos de esta campaña
+    const { data: failedLogs, error } = await this.supabase.client
+      .from('campaign_recipients')
+      .select('contact_id')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'failed');
+
+    if (error) throw new Error(error.message);
+
+    const contactIds = (failedLogs || [])
+      .map((l: any) => l.contact_id)
+      .filter((id: any): id is string => Boolean(id));
+
+    if (contactIds.length === 0) {
+      return { depurated_count: 0 };
+    }
+
+    // 3. Ejecutar Soft Delete sobre esos contactos garantizando pertenencia al user_id
+    const { data: updated, error: updateError } = await this.supabase.client
+      .from('contacts')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', contactIds)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .select('id');
+
+    if (updateError) throw new Error(updateError.message);
+
+    return { depurated_count: updated?.length || 0 };
+  }
+
   @Cron(CronExpression.EVERY_MINUTE)
   async processScheduledCampaigns() {
     const { data: campaigns } = await this.supabase.client

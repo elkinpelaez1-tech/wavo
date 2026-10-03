@@ -7,13 +7,19 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const [campaign, setCampaign] = useState<any>(null);
+  const [failedRecipients, setFailedRecipients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const load = async () => {
     try {
-      const { data } = await api.get(`/campaigns/${id}/stats`);
-      setCampaign(data);
+      const [statsRes, recipientsRes] = await Promise.all([
+        api.get(`/campaigns/${id}/stats`),
+        api.get(`/campaigns/${id}/recipients?status=failed`),
+      ]);
+      setCampaign(statsRes.data);
+      setFailedRecipients(recipientsRes.data || []);
     } catch (err: any) {
       setError('No se pudo cargar la información de la campaña');
     } finally {
@@ -21,12 +27,61 @@ export default function CampaignDetailPage() {
     }
   };
 
+  const loadRecipients = async () => {
+    try {
+      const { data } = await api.get(`/campaigns/${id}/recipients?status=failed`);
+      setFailedRecipients(data || []);
+    } catch (err) {
+      console.error('[CampaignDetailPage] Error al recargar destinatarios:', err);
+    }
+  };
+
   useEffect(() => { load(); }, [id]);
+
+  const handleDeleteContact = async (contactId: string, recipientId: string) => {
+    if (!contactId) return;
+    if (!confirm('¿Eliminar este contacto de tu lista? El historial de esta campaña se conservará.')) {
+      return;
+    }
+
+    setActionLoading(recipientId);
+    try {
+      await api.delete(`/contacts/${contactId}`);
+      alert('1 contacto fue depurado.');
+      await loadRecipients();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al depurar el contacto');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDepurateAll = async () => {
+    const activeFailed = failedRecipients.filter((r) => !r.is_deleted && r.contact_id);
+    if (activeFailed.length === 0) return;
+
+    if (!confirm(`¿Eliminar los ${activeFailed.length} contactos fallidos de tu lista? El historial de la campaña se conservará.`)) {
+      return;
+    }
+
+    setActionLoading('bulk');
+    try {
+      const { data } = await api.post(`/campaigns/${id}/depurate-failed`);
+      const count = data?.depurated_count !== undefined ? data.depurated_count : activeFailed.length;
+      alert(`${count} contactos fueron depurados.`);
+      await loadRecipients();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al depurar los contactos');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   if (loading) return <div className="p-8 text-wavo-muted">Cargando detalles de campaña...</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
 
-  const stats = campaign.stats || { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
+  const stats = campaign?.stats || { pending: 0, sent: 0, delivered: 0, read: 0, failed: 0 };
+  const activeFailedCount = failedRecipients.filter((r) => !r.is_deleted && r.contact_id).length;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -66,6 +121,95 @@ export default function CampaignDetailPage() {
           <p className="text-xs text-[#64716B] mt-1">Rebotes o números no válidos</p>
         </div>
       </div>
+
+      {failedRecipients.length > 0 && (
+        <div className="card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4ECE7] pb-4">
+            <div>
+              <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider">
+                Contactos con envío fallido ({failedRecipients.length})
+              </h2>
+              <p className="text-xs text-[#64716B] mt-0.5 font-medium">
+                Destinatarios cuyo mensaje no pudo ser entregado por WhatsApp / Meta
+              </p>
+            </div>
+            {activeFailedCount > 0 && (
+              <button
+                type="button"
+                onClick={handleDepurateAll}
+                disabled={actionLoading !== null}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {actionLoading === 'bulk' ? 'Depurando...' : `Depurar todos los contactos fallidos (${activeFailedCount})`}
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#E4ECE7] text-[#64716B] bg-[#F7FAF8]">
+                  <th className="py-2.5 px-3 font-semibold">Nombre</th>
+                  <th className="py-2.5 px-3 font-semibold">Teléfono</th>
+                  <th className="py-2.5 px-3 font-semibold">Error de Meta</th>
+                  <th className="py-2.5 px-3 font-semibold text-center">Estado</th>
+                  <th className="py-2.5 px-3 font-semibold text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E4ECE7]">
+                {failedRecipients.map((recipient: any) => {
+                  const contact = recipient.contact;
+                  const isDeleted = recipient.is_deleted;
+                  const phoneDisplay = contact?.phone || contact?.phone_normalized || '-';
+                  const nameDisplay = contact?.name || 'Sin nombre';
+                  const isOperating = actionLoading === recipient.id;
+
+                  return (
+                    <tr key={recipient.id} className="hover:bg-[#F7FAF8]/60 transition-colors">
+                      <td className="py-3 px-3 font-medium text-[#17201C]">
+                        {nameDisplay}
+                      </td>
+                      <td className="py-3 px-3 text-[#64716B] font-mono">
+                        {phoneDisplay}
+                      </td>
+                      <td className="py-3 px-3 text-red-600 max-w-xs truncate font-mono text-[11px]" title={recipient.error_message}>
+                        {recipient.error_message || 'Error desconocido'}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        {isDeleted ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-600">
+                            Depurado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700">
+                            Fallido
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        {isDeleted ? (
+                          <span className="text-[11px] text-[#64716B] font-medium italic">
+                            Depurado
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteContact(recipient.contact_id, recipient.id)}
+                            disabled={actionLoading !== null || !recipient.contact_id}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded bg-white text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          >
+                            {isOperating ? 'Eliminando...' : 'Eliminar contacto'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

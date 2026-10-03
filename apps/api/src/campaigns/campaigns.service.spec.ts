@@ -244,4 +244,90 @@ describe('CampaignsService', () => {
       });
     });
   });
+
+  describe('getRecipients and depurateFailedRecipients', () => {
+    it('1. should return failed recipients for a campaign with contact information', async () => {
+      // Mock findOne
+      supabaseClientMock.single.mockResolvedValueOnce({
+        data: { id: 'camp-1', user_id: 'user-1', name: 'Japon 2027Chile' },
+        error: null,
+      });
+
+      // Mock campaign_recipients query
+      supabaseClientMock.then.mockImplementationOnce((resolve: any) => {
+        resolve({
+          data: [
+            {
+              id: 'rec-1',
+              campaign_id: 'camp-1',
+              contact_id: 'contact-1',
+              status: 'failed',
+              message_id: 'wamid.123',
+              error_message: '[131026] Message undeliverable',
+              sent_at: '2026-10-03T10:00:00Z',
+              delivered_at: null,
+              read_at: null,
+              contacts: {
+                id: 'contact-1',
+                name: 'Zuleima',
+                phone: '573145939302',
+                phone_normalized: '573145939302',
+                whatsapp_status: 'unavailable',
+                deleted_at: null,
+              },
+            },
+          ],
+          error: null,
+        });
+      });
+
+      const recipients = await service.getRecipients('camp-1', 'user-1', 'failed');
+
+      expect(recipients).toHaveLength(1);
+      expect(recipients[0].contact_id).toBe('contact-1');
+      expect(recipients[0].status).toBe('failed');
+      expect(recipients[0].error_message).toBe('[131026] Message undeliverable');
+      expect(recipients[0].contact?.name).toBe('Zuleima');
+      expect(recipients[0].is_deleted).toBe(false);
+    });
+
+    it('2. should depurate failed recipients by setting deleted_at (Soft Delete) scoped to user_id', async () => {
+      // Mock findOne
+      supabaseClientMock.single.mockResolvedValueOnce({
+        data: { id: 'camp-1', user_id: 'user-1', name: 'Japon 2027Chile' },
+        error: null,
+      });
+
+      // Mock finding failed logs in campaign_recipients
+      supabaseClientMock.then.mockImplementationOnce((resolve: any) => {
+        resolve({
+          data: [
+            { contact_id: 'contact-1' },
+            { contact_id: 'contact-2' },
+          ],
+          error: null,
+        });
+      });
+
+      // Mock update on contacts
+      supabaseClientMock.is = jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          data: [{ id: 'contact-1' }, { id: 'contact-2' }],
+          error: null,
+        }),
+      });
+
+      const result = await service.depurateFailedRecipients('camp-1', 'user-1');
+
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deleted_at: expect.any(String),
+        }),
+      );
+      expect(supabaseClientMock.in).toHaveBeenCalledWith('id', ['contact-1', 'contact-2']);
+      expect(supabaseClientMock.eq).toHaveBeenCalledWith('user_id', 'user-1');
+      expect(result.depurated_count).toBe(2);
+    });
+  });
 });

@@ -45,4 +45,9 @@ export class ContactsController {
   remove(@Param('id') id: string, @Request() req) {
     return this.contacts.remove(id, req.user.id);
   }
+
+  @Post('bulk-delete')
+  removeBulk(@Body() body: { contact_ids: string[] }, @Request() req) {
+    return this.contacts.removeBulk(body.contact_ids || [], req.user.id);
+  }
 }
