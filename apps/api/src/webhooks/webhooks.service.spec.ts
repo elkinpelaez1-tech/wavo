@@ -567,4 +567,232 @@ describe('WebhooksService', () => {
       expect(supabaseClientMock.insert).not.toHaveBeenCalled();
     });
   });
+
+  describe('Stage 1: Detección de errores Meta 131026 (whatsapp_status)', () => {
+    it('1. Contacto existente + webhook failed + código 131026 -> actualiza whatsapp_status a unavailable', async () => {
+      supabaseClientMock.maybeSingle.mockResolvedValue({
+        data: {
+          id: 'recipient-10',
+          contact_id: 'contact-uuid-1',
+          status: 'sent',
+          delivered_at: null,
+          read_at: null,
+        },
+        error: null,
+      });
+
+      const payload: any = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: 'entry-1',
+            changes: [
+              {
+                field: 'messages',
+                value: {
+                  messaging_product: 'whatsapp',
+                  metadata: { display_phone_number: '1234', phone_number_id: '5678' },
+                  statuses: [
+                    {
+                      id: 'wamid.test-131026',
+                      status: 'failed',
+                      timestamp: '1726000000',
+                      recipient_id: '57300000000',
+                      errors: [
+                        {
+                          code: 131026,
+                          title: 'Message Undeliverable',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      await service.processPayload(payload);
+
+      // Verify campaign_recipients updated with failed
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('campaign_recipients');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          error_message: '[131026] Message Undeliverable',
+        }),
+      );
+
+      // Verify contacts updated with whatsapp_status = 'unavailable'
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith({
+        whatsapp_status: 'unavailable',
+      });
+      expect(supabaseClientMock.eq).toHaveBeenCalledWith('id', 'contact-uuid-1');
+    });
+
+    it('2. Contacto existente + webhook failed + otro código (ej. 131049, 131051, 132000, 131042, 500) -> NO modifica whatsapp_status', async () => {
+      const otherErrorCodes = [131049, 131051, 131047, 132000, 132001, 131042, 130429, 131052, 131053, 100, 190, 500, 503];
+
+      for (const errorCode of otherErrorCodes) {
+        jest.clearAllMocks();
+
+        supabaseClientMock.maybeSingle.mockResolvedValue({
+          data: {
+            id: 'recipient-11',
+            contact_id: 'contact-uuid-2',
+            status: 'sent',
+            delivered_at: null,
+            read_at: null,
+          },
+          error: null,
+        });
+
+        const payload: any = {
+          object: 'whatsapp_business_account',
+          entry: [
+            {
+              id: 'entry-1',
+              changes: [
+                {
+                  field: 'messages',
+                  value: {
+                    messaging_product: 'whatsapp',
+                    metadata: { display_phone_number: '1234', phone_number_id: '5678' },
+                    statuses: [
+                      {
+                        id: `wamid.test-${errorCode}`,
+                        status: 'failed',
+                        timestamp: '1726000000',
+                        recipient_id: '57300000000',
+                        errors: [
+                          {
+                            code: errorCode,
+                            title: `Error ${errorCode}`,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        };
+
+        await service.processPayload(payload);
+
+        // Verify campaign_recipients was updated
+        expect(supabaseClientMock.from).toHaveBeenCalledWith('campaign_recipients');
+
+        // Verify contacts table was NOT called for whatsapp_status
+        expect(supabaseClientMock.update).not.toHaveBeenCalledWith({
+          whatsapp_status: 'unavailable',
+        });
+      }
+    });
+
+    it('3. Contacto sin fallo (status: delivered o read) -> whatsapp_status permanece intacto (no se toca contacts)', async () => {
+      supabaseClientMock.maybeSingle.mockResolvedValue({
+        data: {
+          id: 'recipient-12',
+          contact_id: 'contact-uuid-3',
+          status: 'sent',
+          delivered_at: null,
+          read_at: null,
+        },
+        error: null,
+      });
+
+      const payload: any = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: 'entry-1',
+            changes: [
+              {
+                field: 'messages',
+                value: {
+                  messaging_product: 'whatsapp',
+                  metadata: { display_phone_number: '1234', phone_number_id: '5678' },
+                  statuses: [
+                    {
+                      id: 'wamid.test-delivered',
+                      status: 'delivered',
+                      timestamp: '1726000000',
+                      recipient_id: '57300000000',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      await service.processPayload(payload);
+
+      // Verify contacts was never queried or updated
+      expect(supabaseClientMock.from).not.toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.update).not.toHaveBeenCalledWith({
+        whatsapp_status: 'unavailable',
+      });
+    });
+
+    it('4. Reprocesamiento del mismo webhook 131026 -> es idempotente y no genera efectos colaterales', async () => {
+      supabaseClientMock.maybeSingle.mockResolvedValue({
+        data: {
+          id: 'recipient-13',
+          contact_id: 'contact-uuid-4',
+          status: 'failed',
+          delivered_at: null,
+          read_at: null,
+        },
+        error: null,
+      });
+
+      const payload: any = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: 'entry-1',
+            changes: [
+              {
+                field: 'messages',
+                value: {
+                  messaging_product: 'whatsapp',
+                  metadata: { display_phone_number: '1234', phone_number_id: '5678' },
+                  statuses: [
+                    {
+                      id: 'wamid.test-131026-duplicate',
+                      status: 'failed',
+                      timestamp: '1726000000',
+                      recipient_id: '57300000000',
+                      errors: [
+                        {
+                          code: 131026,
+                          title: 'Message Undeliverable',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      // Primer procesamiento
+      await service.processPayload(payload);
+      // Segundo procesamiento (duplicado)
+      await service.processPayload(payload);
+
+      expect(supabaseClientMock.from).toHaveBeenCalledWith('contacts');
+      expect(supabaseClientMock.update).toHaveBeenCalledWith({
+        whatsapp_status: 'unavailable',
+      });
+    });
+  });
 });

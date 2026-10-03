@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS contacts (
   phone         TEXT NOT NULL,
   opted_out     BOOLEAN DEFAULT false,
   opted_out_at  TIMESTAMPTZ,
+  whatsapp_status TEXT NOT NULL DEFAULT 'unknown' CHECK (whatsapp_status IN ('unknown', 'unavailable')),
   tags          TEXT[],
   custom_fields JSONB DEFAULT '{}',
   created_at    TIMESTAMPTZ DEFAULT now(),

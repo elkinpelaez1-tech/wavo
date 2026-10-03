@@ -42,7 +42,7 @@ export class WebhooksService {
     // 1. Actualizar en campaign_recipients si existe (campañas masivas)
     const { data: currentRecipient } = await this.supabase.client
       .from('campaign_recipients')
-      .select('id, status, delivered_at, read_at')
+      .select('id, contact_id, status, delivered_at, read_at')
       .eq('message_id', status.id)
       .maybeSingle();
 
@@ -74,6 +74,23 @@ export class WebhooksService {
         .from('campaign_recipients')
         .update(updateData)
         .eq('id', currentRecipient.id);
+
+      // Detección de error 131026 para marcar contacto como unavailable
+      if (status.status === 'failed' && currentRecipient.contact_id) {
+        const has131026Error = status.errors?.some(
+          (err: any) => err?.code === 131026 || String(err?.code) === '131026',
+        );
+
+        if (has131026Error) {
+          this.logger.warn(
+            `🚫 Contacto ${currentRecipient.contact_id} marcado como 'unavailable' por error Meta 131026`,
+          );
+          await this.supabase.client
+            .from('contacts')
+            .update({ whatsapp_status: 'unavailable' })
+            .eq('id', currentRecipient.contact_id);
+        }
+      }
     }
 
     // 2. Actualizar en messages si existe (mensajes de chat 1-a-1)
