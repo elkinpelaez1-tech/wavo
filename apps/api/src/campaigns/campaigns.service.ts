@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, HttpException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Logger } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { execFile } from 'child_process';
 import { SupabaseService } from '../supabase/supabase.service';
 import { MessageProducer } from '../queue/message.producer';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
@@ -440,6 +444,72 @@ export class CampaignsService {
       .eq('id', campaign.id);
   }
 
+  private async optimizeVideoForWhatsApp(inputBuffer: Buffer, ext: string): Promise<Buffer> {
+    const tempDir = os.tmpdir();
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const inputPath = path.join(tempDir, `wavo-in-${uniqueId}.${ext || 'mp4'}`);
+    const outputPath = path.join(tempDir, `wavo-out-${uniqueId}.mp4`);
+
+    try {
+      await fs.promises.writeFile(inputPath, inputBuffer);
+
+      let ffmpegPath: string | null = null;
+      try {
+        const ffmpegModule = require('ffmpeg-static');
+        ffmpegPath = typeof ffmpegModule === 'string' ? ffmpegModule : (ffmpegModule?.default || null);
+      } catch {
+        ffmpegPath = null;
+      }
+
+      if (!ffmpegPath) {
+        ffmpegPath = 'ffmpeg';
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        execFile(
+          ffmpegPath!,
+          [
+            '-y',
+            '-i', inputPath,
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-profile:v', 'main',
+            '-level', '4.0',
+            '-movflags', '+faststart',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-ar', '44100',
+            '-sn', '-dn',
+            '-crf', '24',
+            '-vf', "scale='min(1080,iw)':-2",
+            outputPath,
+          ],
+          (error, stdout, stderr) => {
+            if (error) {
+              this.logger.error(`[Video Optimization Error]: ${error.message} - Stderr: ${stderr}`);
+              return reject(error);
+            }
+            resolve();
+          },
+        );
+      });
+
+      const convertedBuffer = await fs.promises.readFile(outputPath);
+      this.logger.log(`[Video Optimization] Optimizado con éxito: ${inputBuffer.length} bytes -> ${convertedBuffer.length} bytes (H.264, AAC, yuv420p, FastStart)`);
+      return convertedBuffer;
+    } catch (err: any) {
+      this.logger.warn(`[Video Optimization Fallback] No se pudo convertir video: ${err.message}. Se usará archivo original.`);
+      return inputBuffer;
+    } finally {
+      try {
+        if (fs.existsSync(inputPath)) await fs.promises.unlink(inputPath);
+        if (fs.existsSync(outputPath)) await fs.promises.unlink(outputPath);
+      } catch (cleanErr) {
+        this.logger.warn(`Error limpiando archivos temporales: ${cleanErr}`);
+      }
+    }
+  }
+
   async uploadMedia(userId: string, file: any) {
     if (!file) {
       throw new BadRequestException('No se ha proporcionado ningún archivo');
@@ -453,21 +523,38 @@ export class CampaignsService {
       throw new BadRequestException(`Formato de archivo no soportado: ${file.mimetype}`);
     }
 
-    // 16MB máximo permitido para multimedia en WhatsApp Cloud API
-    const maxSize = 16 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new BadRequestException('El archivo excede el tamaño máximo permitido (16MB)');
+    const isVideo = file.mimetype.startsWith('video/');
+    const maxRawSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxRawSize) {
+      throw new BadRequestException(`El archivo excede el tamaño máximo permitido (${isVideo ? '50MB' : '10MB'})`);
     }
 
-    const ext = file.originalname?.split('.').pop() || (file.mimetype.startsWith('video/') ? 'mp4' : 'jpg');
+    const ext = file.originalname?.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
     const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${cleanExt}`;
+
+    let uploadBuffer = file.buffer;
+    let uploadMimeType = file.mimetype;
+    let finalExt = cleanExt;
+
+    if (isVideo) {
+      this.logger.log(`[CampaignsService] Procesando y optimizando video para WhatsApp: ${file.originalname}`);
+      uploadBuffer = await this.optimizeVideoForWhatsApp(file.buffer, cleanExt);
+      uploadMimeType = 'video/mp4';
+      finalExt = 'mp4';
+
+      // 16MB máximo exigido por WhatsApp Cloud API para videos
+      if (uploadBuffer.length > 16 * 1024 * 1024) {
+        throw new BadRequestException('El video optimizado excede el límite de 16MB de WhatsApp Cloud API');
+      }
+    }
+
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${finalExt}`;
     const filePath = `campaigns/${userId}/${fileName}`;
 
     const { error: uploadError } = await this.supabase.client.storage
       .from('campaign-images')
-      .upload(filePath, file.buffer, {
-        contentType: file.mimetype,
+      .upload(filePath, uploadBuffer, {
+        contentType: uploadMimeType,
         upsert: true,
       });
 

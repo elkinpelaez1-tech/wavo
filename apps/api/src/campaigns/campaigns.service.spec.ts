@@ -414,12 +414,23 @@ describe('CampaignsService', () => {
       await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject files exceeding 16MB', async () => {
+    it('should reject image files exceeding 10MB', async () => {
       const mockFile = {
-        originalname: 'large.mp4',
-        mimetype: 'video/mp4',
-        size: 20 * 1024 * 1024,
+        originalname: 'large.png',
+        mimetype: 'image/png',
+        size: 15 * 1024 * 1024,
         buffer: Buffer.from('large'),
+      };
+
+      await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject video files exceeding 50MB raw', async () => {
+      const mockFile = {
+        originalname: 'huge.mp4',
+        mimetype: 'video/mp4',
+        size: 60 * 1024 * 1024,
+        buffer: Buffer.from('huge'),
       };
 
       await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow(BadRequestException);
