@@ -4,6 +4,9 @@ import {
   UseInterceptors, UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as os from 'os';
+import * as path from 'path';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -24,7 +27,21 @@ export class CampaignsController {
   }
 
   @Post('upload-media')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: os.tmpdir(),
+        filename: (req, file, cb) => {
+          const unique = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          const ext = path.extname(file.originalname) || '';
+          cb(null, `wavo-upload-${unique}${ext}`);
+        },
+      }),
+      limits: {
+        fileSize: 50 * 1024 * 1024,
+      },
+    }),
+  )
   uploadMedia(@Request() req, @UploadedFile() file: any) {
     return this.campaigns.uploadMedia(req.user.id, file);
   }

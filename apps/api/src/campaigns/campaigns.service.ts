@@ -444,27 +444,41 @@ export class CampaignsService {
       .eq('id', campaign.id);
   }
 
-  private async optimizeVideoForWhatsApp(inputBuffer: Buffer, ext: string): Promise<Buffer> {
+  // Cola y semáforo para limitar conversiones concurrentes de FFmpeg a 1 proceso a la vez
+  private conversionQueue: Promise<void> = Promise.resolve();
+
+  private async withConversionLock<T>(fn: () => Promise<T>): Promise<T> {
+    const prev = this.conversionQueue;
+    let release: () => void;
+    this.conversionQueue = new Promise((resolve) => {
+      release = resolve;
+    });
+    await prev.catch(() => {});
+    try {
+      return await fn();
+    } finally {
+      release!();
+    }
+  }
+
+  private async optimizeVideoForWhatsApp(inputPath: string): Promise<string> {
     const tempDir = os.tmpdir();
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const inputPath = path.join(tempDir, `wavo-in-${uniqueId}.${ext || 'mp4'}`);
-    const outputPath = path.join(tempDir, `wavo-out-${uniqueId}.mp4`);
+    const outputPath = path.join(tempDir, `wavo-opt-${uniqueId}.mp4`);
 
+    let ffmpegPath: string | null = null;
     try {
-      await fs.promises.writeFile(inputPath, inputBuffer);
+      const ffmpegModule = require('ffmpeg-static');
+      ffmpegPath = typeof ffmpegModule === 'string' ? ffmpegModule : (ffmpegModule?.default || null);
+    } catch {
+      ffmpegPath = null;
+    }
 
-      let ffmpegPath: string | null = null;
-      try {
-        const ffmpegModule = require('ffmpeg-static');
-        ffmpegPath = typeof ffmpegModule === 'string' ? ffmpegModule : (ffmpegModule?.default || null);
-      } catch {
-        ffmpegPath = null;
-      }
+    if (!ffmpegPath) {
+      ffmpegPath = 'ffmpeg';
+    }
 
-      if (!ffmpegPath) {
-        ffmpegPath = 'ffmpeg';
-      }
-
+    return this.withConversionLock(async () => {
       await new Promise<void>((resolve, reject) => {
         execFile(
           ffmpegPath!,
@@ -475,15 +489,18 @@ export class CampaignsService {
             '-pix_fmt', 'yuv420p',
             '-profile:v', 'main',
             '-level', '4.0',
+            '-preset', 'fast',
+            '-threads', '2',
             '-movflags', '+faststart',
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
             '-sn', '-dn',
             '-crf', '24',
-            '-vf', "scale='min(1080,iw)':-2",
+            '-vf', "scale='min(720,iw)':-2",
             outputPath,
           ],
+          { timeout: 60000, maxBuffer: 10 * 1024 * 1024 },
           (error, stdout, stderr) => {
             if (error) {
               this.logger.error(`[Video Optimization Error]: ${error.message} - Stderr: ${stderr}`);
@@ -494,20 +511,12 @@ export class CampaignsService {
         );
       });
 
-      const convertedBuffer = await fs.promises.readFile(outputPath);
-      this.logger.log(`[Video Optimization] Optimizado con éxito: ${inputBuffer.length} bytes -> ${convertedBuffer.length} bytes (H.264, AAC, yuv420p, FastStart)`);
-      return convertedBuffer;
-    } catch (err: any) {
-      this.logger.warn(`[Video Optimization Fallback] No se pudo convertir video: ${err.message}. Se usará archivo original.`);
-      return inputBuffer;
-    } finally {
-      try {
-        if (fs.existsSync(inputPath)) await fs.promises.unlink(inputPath);
-        if (fs.existsSync(outputPath)) await fs.promises.unlink(outputPath);
-      } catch (cleanErr) {
-        this.logger.warn(`Error limpiando archivos temporales: ${cleanErr}`);
-      }
-    }
+      const inSize = fs.existsSync(inputPath) ? fs.statSync(inputPath).size : 0;
+      const outSize = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
+      this.logger.log(`[Video Optimization] Optimizado con éxito: ${inSize} bytes -> ${outSize} bytes (720p, H.264, AAC, yuv420p, FastStart, threads: 2)`);
+
+      return outputPath;
+    });
   }
 
   async uploadMedia(userId: string, file: any) {
@@ -520,52 +529,97 @@ export class CampaignsService {
       'video/mp4', 'video/quicktime', 'video/3gpp',
     ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
+      if (file.path && fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch {}
+      }
       throw new BadRequestException(`Formato de archivo no soportado: ${file.mimetype}`);
     }
 
     const isVideo = file.mimetype.startsWith('video/');
     const maxRawSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxRawSize) {
+    const fileSize = file.size || (file.path && fs.existsSync(file.path) ? fs.statSync(file.path).size : file.buffer?.length || 0);
+
+    if (fileSize > maxRawSize) {
+      if (file.path && fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch {}
+      }
       throw new BadRequestException(`El archivo excede el tamaño máximo permitido (${isVideo ? '50MB' : '10MB'})`);
     }
 
     const ext = file.originalname?.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
     const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
 
-    let uploadBuffer = file.buffer;
+    // Archivos temporales que deben eliminarse obligatoriamente al finalizar
+    const tempFilesToClean: string[] = [];
+    if (file.path) {
+      tempFilesToClean.push(file.path);
+    }
+
+    let inputFilePath = file.path;
+    // Si viene en memoria (e.g. desde test unitario), escribir temporalmente a disco
+    if (!inputFilePath && file.buffer) {
+      const tempIn = path.join(os.tmpdir(), `wavo-in-${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${cleanExt}`);
+      await fs.promises.writeFile(tempIn, file.buffer);
+      inputFilePath = tempIn;
+      tempFilesToClean.push(tempIn);
+    }
+
+    let finalFilePath = inputFilePath;
     let uploadMimeType = file.mimetype;
     let finalExt = cleanExt;
 
-    if (isVideo) {
-      this.logger.log(`[CampaignsService] Procesando y optimizando video para WhatsApp: ${file.originalname}`);
-      uploadBuffer = await this.optimizeVideoForWhatsApp(file.buffer, cleanExt);
-      uploadMimeType = 'video/mp4';
-      finalExt = 'mp4';
+    try {
+      if (isVideo && inputFilePath) {
+        this.logger.log(`[CampaignsService] Procesando y optimizando video por flujo para WhatsApp: ${file.originalname}`);
+        try {
+          const optimizedPath = await this.optimizeVideoForWhatsApp(inputFilePath);
+          finalFilePath = optimizedPath;
+          tempFilesToClean.push(optimizedPath);
+          uploadMimeType = 'video/mp4';
+          finalExt = 'mp4';
+        } catch (convErr: any) {
+          this.logger.warn(`[Video Optimization Fallback] Conversión falló: ${convErr.message}. Usando archivo original.`);
+          finalFilePath = inputFilePath;
+        }
 
-      // 16MB máximo exigido por WhatsApp Cloud API para videos
-      if (uploadBuffer.length > 16 * 1024 * 1024) {
-        throw new BadRequestException('El video optimizado excede el límite de 16MB de WhatsApp Cloud API');
+        const finalSize = fs.existsSync(finalFilePath) ? fs.statSync(finalFilePath).size : 0;
+        if (finalSize > 16 * 1024 * 1024) {
+          throw new BadRequestException('El video optimizado excede el límite de 16MB de WhatsApp Cloud API');
+        }
+      }
+
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${finalExt}`;
+      const filePath = `campaigns/${userId}/${fileName}`;
+
+      // Leer el archivo optimizado (tamaño ligero ~3-5MB) y subir a Supabase Storage
+      const uploadBuffer = await fs.promises.readFile(finalFilePath);
+      const { error: uploadError } = await this.supabase.client.storage
+        .from('campaign-images')
+        .upload(filePath, uploadBuffer, {
+          contentType: uploadMimeType,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw new InternalServerErrorException(`Error al subir archivo a Storage: ${uploadError.message}`);
+      }
+
+      const { data: { publicUrl } } = this.supabase.client.storage
+        .from('campaign-images')
+        .getPublicUrl(filePath);
+
+      return { publicUrl, filePath };
+    } finally {
+      // Limpieza garantizada de todos los archivos temporales
+      for (const tempPath of tempFilesToClean) {
+        try {
+          if (fs.existsSync(tempPath)) {
+            await fs.promises.unlink(tempPath);
+          }
+        } catch (cleanErr) {
+          this.logger.warn(`Error limpiando archivo temporal ${tempPath}: ${cleanErr}`);
+        }
       }
     }
-
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${finalExt}`;
-    const filePath = `campaigns/${userId}/${fileName}`;
-
-    const { error: uploadError } = await this.supabase.client.storage
-      .from('campaign-images')
-      .upload(filePath, uploadBuffer, {
-        contentType: uploadMimeType,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      throw new InternalServerErrorException(`Error al subir archivo a Storage: ${uploadError.message}`);
-    }
-
-    const { data: { publicUrl } } = this.supabase.client.storage
-      .from('campaign-images')
-      .getPublicUrl(filePath);
-
-    return { publicUrl, filePath };
   }
 }
