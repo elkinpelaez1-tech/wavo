@@ -1,4 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { CampaignsService } from './campaigns.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { MetaService } from '../meta/meta.service';
@@ -388,7 +391,7 @@ describe('CampaignsService', () => {
   });
 
   describe('uploadMedia', () => {
-    it('should successfully upload an MP4 video scoped to userId', async () => {
+    it('should successfully upload an MP4 video scoped to userId after optimization', async () => {
       const mockFile = {
         originalname: 'promo.mp4',
         mimetype: 'video/mp4',
@@ -396,11 +399,28 @@ describe('CampaignsService', () => {
         buffer: Buffer.from('dummy-video-data'),
       };
 
+      const tempOptPath = path.join(os.tmpdir(), `test-opt-${Date.now()}.mp4`);
+      fs.writeFileSync(tempOptPath, Buffer.from('optimized-content'));
+      jest.spyOn(service as any, 'optimizeVideoForWhatsApp').mockResolvedValue(tempOptPath);
+
       const result = await service.uploadMedia('user-1', mockFile);
 
       expect(supabaseClientMock.storage.from).toHaveBeenCalledWith('campaign-images');
       expect(result.publicUrl).toBe('https://storage.supabase.co/campaigns/user-1/test.mp4');
       expect(result.filePath).toMatch(/^campaigns\/user-1\/\d+-[a-z0-9]+\.mp4$/);
+    });
+
+    it('should throw an error and never upload when video optimization fails (no silent fallback)', async () => {
+      const mockFile = {
+        originalname: 'broken.mp4',
+        mimetype: 'video/mp4',
+        size: 5 * 1024 * 1024,
+        buffer: Buffer.from('corrupt-video-data'),
+      };
+
+      jest.spyOn(service as any, 'optimizeVideoForWhatsApp').mockRejectedValue(new Error('FFmpeg failed'));
+
+      await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow();
     });
 
     it('should reject unsupported mime types', async () => {

@@ -21,6 +21,11 @@ export class CampaignsController {
     return this.campaigns.findAll(req.user.id);
   }
 
+  @Get('media/ffmpeg-status')
+  getFfmpegStatus() {
+    return this.campaigns.getFfmpegStatus();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
     return this.campaigns.findOne(id, req.user.id);

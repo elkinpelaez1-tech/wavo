@@ -461,11 +461,7 @@ export class CampaignsService {
     }
   }
 
-  private async optimizeVideoForWhatsApp(inputPath: string): Promise<string> {
-    const tempDir = os.tmpdir();
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const outputPath = path.join(tempDir, `wavo-opt-${uniqueId}.mp4`);
-
+  getFfmpegPath(): string {
     let ffmpegPath: string | null = null;
     try {
       const ffmpegModule = require('ffmpeg-static');
@@ -474,14 +470,68 @@ export class CampaignsService {
       ffmpegPath = null;
     }
 
-    if (!ffmpegPath) {
-      ffmpegPath = 'ffmpeg';
+    if (ffmpegPath && fs.existsSync(ffmpegPath)) {
+      try {
+        if (process.platform !== 'win32') {
+          fs.chmodSync(ffmpegPath, 0o755);
+        }
+      } catch (e) {
+        this.logger.warn(`No se pudo aplicar chmod a ffmpeg: ${e}`);
+      }
+      return ffmpegPath;
     }
+
+    // Si el binario estático no existe en disco, intentar instalarlo vía install.js
+    try {
+      const installScript = require.resolve('ffmpeg-static/install.js');
+      if (fs.existsSync(installScript)) {
+        this.logger.log('[FFmpeg] Binario de ffmpeg-static no presente en disco, ejecutando install.js...');
+        require('child_process').execSync(`"${process.execPath}" "${installScript}"`, { stdio: 'inherit' });
+        if (ffmpegPath && fs.existsSync(ffmpegPath)) {
+          if (process.platform !== 'win32') {
+            fs.chmodSync(ffmpegPath, 0o755);
+          }
+          return ffmpegPath;
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`[FFmpeg] Error en auto-instalación de ffmpeg-static: ${e}`);
+    }
+
+    return 'ffmpeg';
+  }
+
+  getFfmpegStatus() {
+    const ffmpegPath = this.getFfmpegPath();
+    const exists = fs.existsSync(ffmpegPath);
+    let version = 'unknown';
+    let error: string | null = null;
+    try {
+      const out = require('child_process').execFileSync(ffmpegPath, ['-version'], { encoding: 'utf8' });
+      version = out.split('\n')[0];
+    } catch (e: any) {
+      error = e.message;
+    }
+    return {
+      ffmpegPath,
+      exists,
+      version,
+      error,
+      platform: process.platform,
+      arch: process.arch,
+    };
+  }
+
+  private async optimizeVideoForWhatsApp(inputPath: string): Promise<string> {
+    const tempDir = os.tmpdir();
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const outputPath = path.join(tempDir, `wavo-opt-${uniqueId}.mp4`);
+    const ffmpegPath = this.getFfmpegPath();
 
     return this.withConversionLock(async () => {
       await new Promise<void>((resolve, reject) => {
         execFile(
-          ffmpegPath!,
+          ffmpegPath,
           [
             '-y',
             '-i', inputPath,
@@ -500,11 +550,11 @@ export class CampaignsService {
             '-vf', "scale='min(720,iw)':-2",
             outputPath,
           ],
-          { timeout: 60000, maxBuffer: 10 * 1024 * 1024 },
+          { timeout: 120000, maxBuffer: 10 * 1024 * 1024 },
           (error, stdout, stderr) => {
             if (error) {
               this.logger.error(`[Video Optimization Error]: ${error.message} - Stderr: ${stderr}`);
-              return reject(error);
+              return reject(new Error(`FFmpeg error: ${error.message}`));
             }
             resolve();
           },
@@ -571,16 +621,13 @@ export class CampaignsService {
     try {
       if (isVideo && inputFilePath) {
         this.logger.log(`[CampaignsService] Procesando y optimizando video por flujo para WhatsApp: ${file.originalname}`);
-        try {
-          const optimizedPath = await this.optimizeVideoForWhatsApp(inputFilePath);
-          finalFilePath = optimizedPath;
-          tempFilesToClean.push(optimizedPath);
-          uploadMimeType = 'video/mp4';
-          finalExt = 'mp4';
-        } catch (convErr: any) {
-          this.logger.warn(`[Video Optimization Fallback] Conversión falló: ${convErr.message}. Usando archivo original.`);
-          finalFilePath = inputFilePath;
-        }
+        // REGLA CRÍTICA: NUNCA hacer fallback silencioso al archivo original si falla la conversión.
+        // WhatsApp móvil requiere estrictamente H.264 Main, AAC, yuv420p y FastStart (moov atom al inicio).
+        const optimizedPath = await this.optimizeVideoForWhatsApp(inputFilePath);
+        finalFilePath = optimizedPath;
+        tempFilesToClean.push(optimizedPath);
+        uploadMimeType = 'video/mp4';
+        finalExt = 'mp4';
 
         const finalSize = fs.existsSync(finalFilePath) ? fs.statSync(finalFilePath).size : 0;
         if (finalSize > 16 * 1024 * 1024) {
