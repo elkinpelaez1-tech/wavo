@@ -1,7 +1,9 @@
 import {
   Controller, Get, Post, Patch, Delete,
   Body, Param, Query, UseGuards, Request,
+  UseInterceptors, UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,6 +21,12 @@ export class CampaignsController {
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
     return this.campaigns.findOne(id, req.user.id);
+  }
+
+  @Post('upload-media')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadMedia(@Request() req, @UploadedFile() file: any) {
+    return this.campaigns.uploadMedia(req.user.id, file);
   }
 
   @Post()

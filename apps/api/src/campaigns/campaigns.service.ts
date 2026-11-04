@@ -439,4 +439,46 @@ export class CampaignsService {
       .update({ status: 'completed' })
       .eq('id', campaign.id);
   }
+
+  async uploadMedia(userId: string, file: any) {
+    if (!file) {
+      throw new BadRequestException('No se ha proporcionado ningún archivo');
+    }
+
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/quicktime', 'video/3gpp',
+    ];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException(`Formato de archivo no soportado: ${file.mimetype}`);
+    }
+
+    // 16MB máximo permitido para multimedia en WhatsApp Cloud API
+    const maxSize = 16 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new BadRequestException('El archivo excede el tamaño máximo permitido (16MB)');
+    }
+
+    const ext = file.originalname?.split('.').pop() || (file.mimetype.startsWith('video/') ? 'mp4' : 'jpg');
+    const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${cleanExt}`;
+    const filePath = `campaigns/${userId}/${fileName}`;
+
+    const { error: uploadError } = await this.supabase.client.storage
+      .from('campaign-images')
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw new InternalServerErrorException(`Error al subir archivo a Storage: ${uploadError.message}`);
+    }
+
+    const { data: { publicUrl } } = this.supabase.client.storage
+      .from('campaign-images')
+      .getPublicUrl(filePath);
+
+    return { publicUrl, filePath };
+  }
 }

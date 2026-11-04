@@ -2,7 +2,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { getSupabase } from '@/lib/supabase';
 
 interface TemplateComponent {
   type: string;
@@ -183,23 +182,14 @@ export default function NewCampaignPage() {
     setError('');
 
     try {
-      const fileExt = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `campaigns/${fileName}`;
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const supabase = getSupabase();
-      const { error: uploadError } = await supabase.storage
-        .from('campaign-images')
-        .upload(filePath, file, {
-          contentType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
-          upsert: true,
-        });
+      const { data } = await api.post('/campaigns/upload-media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('campaign-images')
-        .getPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
 
       if (isVideo) {
         setForm((prev) => ({ ...prev, video_url: publicUrl }));
@@ -208,7 +198,8 @@ export default function NewCampaignPage() {
       }
     } catch (err: any) {
       console.error(`Error al subir ${isVideo ? 'video' : 'imagen'}:`, err);
-      setError(`Error al subir ${isVideo ? 'video' : 'imagen'}: ${err.message || 'Error desconocido'}`);
+      const msg = err.response?.data?.message || err.message || 'Error desconocido';
+      setError(`Error al subir ${isVideo ? 'video' : 'imagen'}: ${msg}`);
     } finally {
       setUploading(false);
     }

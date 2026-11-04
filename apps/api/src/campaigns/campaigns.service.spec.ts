@@ -25,6 +25,12 @@ describe('CampaignsService', () => {
       order: jest.fn().mockReturnThis(),
       in: jest.fn().mockReturnThis(),
       then: jest.fn((resolve) => resolve({ data: [], error: null })),
+      storage: {
+        from: jest.fn().mockReturnValue({
+          upload: jest.fn().mockResolvedValue({ error: null }),
+          getPublicUrl: jest.fn().mockReturnValue({ data: { publicUrl: 'https://storage.supabase.co/campaigns/user-1/test.mp4' } }),
+        }),
+      },
     };
 
     const supabaseServiceMock = {
@@ -378,6 +384,45 @@ describe('CampaignsService', () => {
       expect(supabaseClientMock.in).toHaveBeenCalledWith('id', ['contact-1', 'contact-2']);
       expect(supabaseClientMock.eq).toHaveBeenCalledWith('user_id', 'user-1');
       expect(result.depurated_count).toBe(2);
+    });
+  });
+
+  describe('uploadMedia', () => {
+    it('should successfully upload an MP4 video scoped to userId', async () => {
+      const mockFile = {
+        originalname: 'promo.mp4',
+        mimetype: 'video/mp4',
+        size: 5 * 1024 * 1024,
+        buffer: Buffer.from('dummy-video-data'),
+      };
+
+      const result = await service.uploadMedia('user-1', mockFile);
+
+      expect(supabaseClientMock.storage.from).toHaveBeenCalledWith('campaign-images');
+      expect(result.publicUrl).toBe('https://storage.supabase.co/campaigns/user-1/test.mp4');
+      expect(result.filePath).toMatch(/^campaigns\/user-1\/\d+-[a-z0-9]+\.mp4$/);
+    });
+
+    it('should reject unsupported mime types', async () => {
+      const mockFile = {
+        originalname: 'script.exe',
+        mimetype: 'application/x-msdownload',
+        size: 1024,
+        buffer: Buffer.from('bad'),
+      };
+
+      await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject files exceeding 16MB', async () => {
+      const mockFile = {
+        originalname: 'large.mp4',
+        mimetype: 'video/mp4',
+        size: 20 * 1024 * 1024,
+        buffer: Buffer.from('large'),
+      };
+
+      await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow(BadRequestException);
     });
   });
 });
