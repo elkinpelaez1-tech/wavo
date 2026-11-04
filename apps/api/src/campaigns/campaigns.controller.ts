@@ -11,26 +11,28 @@ import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@UseGuards(JwtAuthGuard)
 @Controller('campaigns')
 export class CampaignsController {
   constructor(private campaigns: CampaignsService) {}
-
-  @Get()
-  findAll(@Request() req) {
-    return this.campaigns.findAll(req.user.id);
-  }
 
   @Get('media/ffmpeg-status')
   getFfmpegStatus() {
     return this.campaigns.getFfmpegStatus();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  findAll(@Request() req) {
+    return this.campaigns.findAll(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
     return this.campaigns.findOne(id, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('upload-media')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -51,31 +53,37 @@ export class CampaignsController {
     return this.campaigns.uploadMedia(req.user.id, file);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() dto: CreateCampaignDto, @Request() req) {
     return this.campaigns.create(req.user.id, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateCampaignDto, @Request() req) {
     return this.campaigns.update(id, req.user.id, dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req) {
     return this.campaigns.remove(id, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/launch')
   launch(@Param('id') id: string, @Request() req) {
     return this.campaigns.launch(id, req.user.id, req.user.plan);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id/stats')
   stats(@Param('id') id: string, @Request() req) {
     return this.campaigns.getStats(id, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id/recipients')
   getRecipients(
     @Param('id') id: string,
@@ -85,6 +93,7 @@ export class CampaignsController {
     return this.campaigns.getRecipients(id, req.user.id, status);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/depurate-failed')
   depurateFailed(@Param('id') id: string, @Request() req) {
     return this.campaigns.depurateFailedRecipients(id, req.user.id);

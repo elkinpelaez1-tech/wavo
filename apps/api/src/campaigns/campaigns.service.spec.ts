@@ -456,4 +456,15 @@ describe('CampaignsService', () => {
       await expect(service.uploadMedia('user-1', mockFile)).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('getFfmpegStatus', () => {
+    it('should return available, executable, and version without exposing paths or secrets', () => {
+      const status = service.getFfmpegStatus();
+      expect(status).toHaveProperty('available');
+      expect(status).toHaveProperty('executable');
+      expect(status).toHaveProperty('version');
+      expect(status).not.toHaveProperty('ffmpegPath');
+      expect(status).not.toHaveProperty('error');
+    });
+  });
 });

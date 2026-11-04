@@ -504,21 +504,29 @@ export class CampaignsService {
   getFfmpegStatus() {
     const ffmpegPath = this.getFfmpegPath();
     const exists = fs.existsSync(ffmpegPath);
-    let version = 'unknown';
-    let error: string | null = null;
-    try {
-      const out = require('child_process').execFileSync(ffmpegPath, ['-version'], { encoding: 'utf8' });
-      version = out.split('\n')[0];
-    } catch (e: any) {
-      error = e.message;
+    let isExecutable = false;
+    let version: string | null = null;
+
+    if (exists || ffmpegPath === 'ffmpeg') {
+      try {
+        const out = require('child_process').execFileSync(ffmpegPath, ['-version'], {
+          encoding: 'utf8',
+          timeout: 5000,
+        });
+        const firstLine = out.split('\n')[0]?.trim();
+        if (firstLine) {
+          isExecutable = true;
+          version = firstLine;
+        }
+      } catch (e: any) {
+        this.logger.warn(`Error al verificar ejecución de FFmpeg: ${e.message}`);
+      }
     }
+
     return {
-      ffmpegPath,
-      exists,
-      version,
-      error,
-      platform: process.platform,
-      arch: process.arch,
+      available: exists || isExecutable,
+      executable: isExecutable,
+      version: version || null,
     };
   }
 
