@@ -164,8 +164,58 @@ describe('CampaignsService', () => {
         '573217452834',
         'hello_world',
         [],
-        null,
-        'en_US'
+        undefined,
+        'en_US',
+        'image',
+      );
+    });
+
+    it('should pass video_url and mediaType video when template has VIDEO header', async () => {
+      const mockCampaign = {
+        id: 'campaign-video-1',
+        name: 'Launch Video Campaign',
+        template_name: 'video_japon_nos_invita',
+        template_language: 'es',
+        video_url: 'https://example.com/video.mp4',
+        user_id: 'user-1',
+      };
+
+      // Mock finding template components
+      supabaseClientMock.maybeSingle.mockResolvedValueOnce({
+        data: {
+          components: [{ type: 'HEADER', format: 'VIDEO' }, { type: 'BODY', text: 'Hola' }],
+        },
+        error: null,
+      });
+
+      // Mock recipients selection
+      supabaseClientMock.then.mockImplementation((resolve: any) => {
+        resolve({
+          data: [
+            {
+              contact_id: 'contact-2',
+              contacts: { phone_normalized: '573001234567', opted_out: false, deleted_at: null },
+            },
+          ],
+          error: null,
+        });
+      });
+
+      // Mock currentCampaign query for count
+      supabaseClientMock.single.mockResolvedValue({
+        data: { sent_count: 0 },
+        error: null,
+      });
+
+      await (service as any).enqueueCampaign(mockCampaign);
+
+      expect(metaServiceMock.sendTemplate).toHaveBeenCalledWith(
+        '573001234567',
+        'video_japon_nos_invita',
+        [],
+        'https://example.com/video.mp4',
+        'es',
+        'video',
       );
     });
   });

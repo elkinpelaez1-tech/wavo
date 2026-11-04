@@ -20,16 +20,24 @@ export class MetaService {
     to: string,
     templateName: string,
     bodyVars: string[] = [],
-    imageUrl?: string,
+    mediaUrl?: string,
     language = 'es',
+    mediaType: 'image' | 'video' = 'image',
   ) {
     const components: any[] = [];
 
-    if (imageUrl) {
-      components.push({
-        type: 'header',
-        parameters: [{ type: 'image', image: { link: imageUrl } }],
-      });
+    if (mediaUrl) {
+      if (mediaType === 'video') {
+        components.push({
+          type: 'header',
+          parameters: [{ type: 'video', video: { link: mediaUrl } }],
+        });
+      } else {
+        components.push({
+          type: 'header',
+          parameters: [{ type: 'image', image: { link: mediaUrl } }],
+        });
+      }
     }
 
     if (bodyVars.length > 0) {

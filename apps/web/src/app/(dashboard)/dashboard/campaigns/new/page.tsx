@@ -33,8 +33,8 @@ export default function NewCampaignPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   
-  // Tipo de mensaje: 'text' | 'image'
-  const [messageType, setMessageType] = useState<'text' | 'image'>('text');
+  // Tipo de mensaje: 'text' | 'image' | 'video'
+  const [messageType, setMessageType] = useState<'text' | 'image' | 'video'>('text');
 
   // Modo de envío: 'now' | 'schedule'
   const [sendMode, setSendMode] = useState<'now' | 'schedule'>('now');
@@ -47,6 +47,7 @@ export default function NewCampaignPage() {
     name: '',
     template_name: '',
     image_url: '',
+    video_url: '',
     scheduled_at: '',
   });
 
@@ -74,37 +75,51 @@ export default function NewCampaignPage() {
     return Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }, [contacts]);
 
-  const hasImageHeader = (t: Template) => {
-    return Array.isArray(t?.components) && t.components.some(
-      (c) => c.type?.toUpperCase() === 'HEADER' && c.format?.toUpperCase() === 'IMAGE'
-    );
+  const getTemplateHeaderFormat = (t: Template): 'IMAGE' | 'VIDEO' | 'TEXT' => {
+    if (!Array.isArray(t?.components)) return 'TEXT';
+    const header = t.components.find((c) => c.type?.toUpperCase() === 'HEADER');
+    if (!header) return 'TEXT';
+    const format = header.format?.toUpperCase();
+    if (format === 'VIDEO') return 'VIDEO';
+    if (format === 'IMAGE') return 'IMAGE';
+    return 'TEXT';
   };
 
   // Filtrar plantillas según el tipo de mensaje seleccionado
   const filteredTemplates = templates.filter((t) => {
     if (t.status && t.status.toLowerCase() !== 'approved') return false;
-    const hasImg = hasImageHeader(t);
-    return messageType === 'image' ? hasImg : !hasImg;
+    const headerFormat = getTemplateHeaderFormat(t);
+    if (messageType === 'video') return headerFormat === 'VIDEO';
+    if (messageType === 'image') return headerFormat === 'IMAGE';
+    return headerFormat === 'TEXT';
   });
 
   // Plantilla actualmente seleccionada para vista previa
   const selectedTemplate = templates.find((t) => t.meta_template_name === form.template_name);
 
-  const handleMessageTypeChange = (type: 'text' | 'image') => {
+  const handleMessageTypeChange = (type: 'text' | 'image' | 'video') => {
     setMessageType(type);
     // Si la plantilla seleccionada actual no es compatible con el nuevo tipo, resetearla
     if (form.template_name) {
       const currentT = templates.find((t) => t.meta_template_name === form.template_name);
       if (currentT) {
-        const isImg = hasImageHeader(currentT);
-        if ((type === 'image' && !isImg) || (type === 'text' && isImg)) {
+        const headerFormat = getTemplateHeaderFormat(currentT);
+        const matches =
+          (type === 'video' && headerFormat === 'VIDEO') ||
+          (type === 'image' && headerFormat === 'IMAGE') ||
+          (type === 'text' && headerFormat === 'TEXT');
+        if (!matches) {
           setForm((prev) => ({ ...prev, template_name: '' }));
         }
       }
     }
-    // Si se cambia a solo texto, limpiar imagen
+    // Limpiar vistas previas y URLs multimedia según corresponda
+    setPreview('');
     if (type === 'text') {
-      setPreview('');
+      setForm((prev) => ({ ...prev, image_url: '', video_url: '' }));
+    } else if (type === 'image') {
+      setForm((prev) => ({ ...prev, video_url: '' }));
+    } else if (type === 'video') {
       setForm((prev) => ({ ...prev, image_url: '' }));
     }
     setError('');
@@ -159,6 +174,7 @@ export default function NewCampaignPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const isVideo = messageType === 'video';
     const reader = new FileReader();
     reader.onloadend = () => setPreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -167,14 +183,17 @@ export default function NewCampaignPage() {
     setError('');
 
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `campaigns/${fileName}`;
 
       const supabase = getSupabase();
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('campaign-images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          contentType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+          upsert: true,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -182,10 +201,14 @@ export default function NewCampaignPage() {
         .from('campaign-images')
         .getPublicUrl(filePath);
 
-      setForm((prev) => ({ ...prev, image_url: publicUrl }));
+      if (isVideo) {
+        setForm((prev) => ({ ...prev, video_url: publicUrl }));
+      } else {
+        setForm((prev) => ({ ...prev, image_url: publicUrl }));
+      }
     } catch (err: any) {
-      console.error('Error al subir imagen:', err);
-      setError(`Error al subir imagen: ${err.message || 'Error desconocido'}`);
+      console.error(`Error al subir ${isVideo ? 'video' : 'imagen'}:`, err);
+      setError(`Error al subir ${isVideo ? 'video' : 'imagen'}: ${err.message || 'Error desconocido'}`);
     } finally {
       setUploading(false);
     }
@@ -209,6 +232,11 @@ export default function NewCampaignPage() {
       return;
     }
 
+    if (messageType === 'video' && !form.video_url) {
+      setError('Debes subir un archivo de video para la plantilla multimedia');
+      return;
+    }
+
     if (sendMode === 'schedule' && !form.scheduled_at) {
       setError('Debes especificar la fecha y hora para programar el envío');
       return;
@@ -229,6 +257,10 @@ export default function NewCampaignPage() {
 
       if (messageType === 'image' && form.image_url) {
         payload.image_url = form.image_url;
+        payload.media_url = form.image_url;
+      } else if (messageType === 'video' && form.video_url) {
+        payload.video_url = form.video_url;
+        payload.media_url = form.video_url;
       }
 
       if (sendMode === 'schedule' && form.scheduled_at) {
@@ -267,7 +299,7 @@ export default function NewCampaignPage() {
         {/* Paso 1: Tipo de Mensaje */}
         <div className="card space-y-4">
           <h2 className="text-xs font-semibold text-[#17201C] uppercase tracking-wider">1. Tipo de mensaje</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => handleMessageTypeChange('text')}
@@ -301,6 +333,24 @@ export default function NewCampaignPage() {
               </div>
               <p className="text-xs text-[#64716B] leading-relaxed">
                 Mensaje con banner o imagen destacada en el encabezado y texto promocional.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleMessageTypeChange('video')}
+              className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                messageType === 'video'
+                  ? 'border-[#0F8F6F] bg-[#E8F7F0] ring-1 ring-[#0F8F6F] shadow-2xs'
+                  : 'border-[#E4ECE7] bg-[#F8FAF9] hover:border-[#0F8F6F]/60'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <span className="text-lg">🎥</span>
+                <span className="font-semibold text-sm text-[#17201C]">Video + texto</span>
+              </div>
+              <p className="text-xs text-[#64716B] leading-relaxed">
+                Mensaje con video en el encabezado (MP4) y texto explicativo o de invitación.
               </p>
             </button>
           </div>
@@ -344,7 +394,10 @@ export default function NewCampaignPage() {
 
             {filteredTemplates.length === 0 && (
               <p className="text-xs text-amber-600 mt-2 font-medium">
-                No tienes plantillas aprobadas de tipo <strong>{messageType === 'image' ? 'Imagen' : 'Texto'}</strong>.{' '}
+                No tienes plantillas aprobadas de tipo{' '}
+                <strong>
+                  {messageType === 'video' ? 'Video' : messageType === 'image' ? 'Imagen' : 'Texto'}
+                </strong>.{' '}
                 <a href="/dashboard/templates" className="text-[#0F8F6F] underline font-semibold">
                   Sincroniza tus plantillas desde Meta →
                 </a>
@@ -415,6 +468,60 @@ export default function NewCampaignPage() {
                     onClick={() => {
                       setPreview('');
                       setForm((prev) => ({ ...prev, image_url: '' }));
+                    }}
+                    className="text-xs text-red-600 hover:underline font-semibold"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Video (Solo si el tipo es Video + Texto) */}
+          {messageType === 'video' && (
+            <div className="pt-2 border-t border-[#E4ECE7]">
+              <label className="label">Video para el encabezado</label>
+              <div className="mt-1 flex items-center gap-4">
+                <div className="relative group flex-1">
+                  <input
+                    type="file"
+                    accept="video/mp4,video/*"
+                    className="hidden"
+                    id="video-upload"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                  <label
+                    htmlFor="video-upload"
+                    className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-all
+                      ${preview ? 'border-[#0F8F6F] bg-[#F8FAF9]' : 'border-[#E4ECE7] hover:border-[#0F8F6F] bg-[#F8FAF9]'}
+                      ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {preview ? (
+                      <video src={preview} controls className="h-full w-full object-contain rounded-lg p-1" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                        <svg className="w-8 h-8 mb-2 text-[#64716B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-xs font-semibold text-[#17201C]">Haz clic para seleccionar video</p>
+                        <p className="text-[11px] text-[#64716B] mt-0.5">MP4 (Recomendado hasta 16MB)</p>
+                      </div>
+                    )}
+                    {uploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-xs rounded-xl">
+                        <span className="text-xs font-semibold text-[#0F8F6F] animate-pulse">Subiendo video...</span>
+                      </div>
+                    )}
+                  </label>
+                </div>
+                {preview && !uploading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreview('');
+                      setForm((prev) => ({ ...prev, video_url: '' }));
                     }}
                     className="text-xs text-red-600 hover:underline font-semibold"
                   >

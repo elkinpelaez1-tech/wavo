@@ -36,16 +36,22 @@ export class TemplatesService {
         return { synced: 0 };
       }
 
-      const rows = templates.map((t: any) => ({
-        user_id: userId,
-        meta_template_name: t.name,
-        display_name: t.name,
-        category: t.category,
-        language: t.language,
-        content: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
-        components: t.components || [],
-        status: t.status?.toLowerCase() || 'pending',
-      }));
+      const rows = templates.map((t: any) => {
+        const headerComp = t.components?.find((c: any) => c.type?.toUpperCase() === 'HEADER');
+        const headerFormat = headerComp?.format?.toUpperCase();
+        return {
+          user_id: userId,
+          meta_template_name: t.name,
+          display_name: t.name,
+          category: t.category,
+          language: t.language,
+          content: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
+          body_text: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
+          has_image: headerFormat === 'IMAGE',
+          components: t.components || [],
+          status: t.status?.toLowerCase() || 'pending',
+        };
+      });
 
       const { error: upsertError } = await this.supabase.client
         .from('templates')

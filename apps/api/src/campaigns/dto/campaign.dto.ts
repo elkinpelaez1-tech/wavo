@@ -17,6 +17,14 @@ export class CreateCampaignDto {
   @IsOptional()
   image_url?: string;
 
+  @IsString()
+  @IsOptional()
+  video_url?: string;
+
+  @IsString()
+  @IsOptional()
+  media_url?: string;
+
   @IsDateString()
   @IsOptional()
   scheduled_at?: string;
@@ -33,6 +41,14 @@ export class UpdateCampaignDto {
   @IsString()
   @IsOptional()
   image_url?: string;
+
+  @IsString()
+  @IsOptional()
+  video_url?: string;
+
+  @IsString()
+  @IsOptional()
+  media_url?: string;
 
   @IsDateString()
   @IsOptional()

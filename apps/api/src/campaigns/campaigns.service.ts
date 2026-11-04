@@ -348,6 +348,32 @@ export class CampaignsService {
       .update({ status: 'running' })
       .eq('id', campaign.id);
 
+    // Determinar si la plantilla requiere VIDEO, IMAGE o TEXT
+    let headerType: 'image' | 'video' | null = null;
+    if (campaign.template_name) {
+      const { data: tmpl } = await this.supabase.client
+        .from('templates')
+        .select('components')
+        .eq('meta_template_name', campaign.template_name)
+        .eq('user_id', campaign.user_id)
+        .maybeSingle();
+
+      const headerComp = tmpl?.components?.find(
+        (c: any) => c.type?.toUpperCase() === 'HEADER',
+      );
+      const format = headerComp?.format?.toUpperCase();
+      if (format === 'VIDEO') {
+        headerType = 'video';
+      } else if (format === 'IMAGE') {
+        headerType = 'image';
+      }
+    }
+
+    const mediaUrl =
+      headerType === 'video'
+        ? (campaign.video_url || campaign.media_url || campaign.image_url)
+        : (campaign.image_url || campaign.media_url);
+
     for (let i = 0; i < active.length; i++) {
       const log: any = active[i];
       const contact = Array.isArray(log.contacts) ? log.contacts[0] : log.contacts;
@@ -361,8 +387,9 @@ export class CampaignsService {
           phone,
           campaign.template_name,
           bodyVars,
-          campaign.image_url,
+          mediaUrl,
           campaign.template_language,
+          headerType || 'image',
         );
 
         const messageId = result.messages?.[0]?.id;

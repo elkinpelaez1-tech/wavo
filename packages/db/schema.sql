@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS campaigns (
   template_name       TEXT,
   template_language   TEXT DEFAULT 'es',
   image_url           TEXT,
+  video_url           TEXT,
+  media_url           TEXT,
   status              TEXT DEFAULT 'draft',
   scheduled_at        TIMESTAMPTZ,
   total_recipients    INT DEFAULT 0,

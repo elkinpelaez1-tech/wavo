@@ -36,6 +36,31 @@ export default function TemplatesPage() {
     return <span className="badge-amber">Pendiente</span>;
   };
 
+  const getHeaderBadge = (t: any) => {
+    if (!Array.isArray(t?.components)) {
+      if (t?.has_image) return <span className="badge-amber text-[11px] px-2 py-0.5">🖼️ Con imagen</span>;
+      return null;
+    }
+    const header = t.components.find((c: any) => c.type?.toUpperCase() === 'HEADER');
+    if (!header) return null;
+    const format = header.format?.toUpperCase();
+    if (format === 'VIDEO') {
+      return (
+        <span className="bg-[#EBF3FF] text-[#2563EB] border border-[#2563EB]/20 text-[11px] px-2 py-0.5 rounded-md font-medium">
+          🎥 Con video
+        </span>
+      );
+    }
+    if (format === 'IMAGE') {
+      return (
+        <span className="badge-amber text-[11px] px-2 py-0.5">
+          🖼️ Con imagen
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -84,11 +109,7 @@ export default function TemplatesPage() {
                 <span className="bg-[#F8FAF9] text-[#64716B] border border-[#E4ECE7] text-[11px] px-2 py-0.5 rounded-md font-medium uppercase">
                   {t.language}
                 </span>
-                {t.has_image && (
-                  <span className="badge-amber text-[11px] px-2 py-0.5">
-                    🖼️ Con imagen
-                  </span>
-                )}
+                {getHeaderBadge(t)}
               </div>
               {t.body_text && (
                 <div className="bg-[#F8FAF9] border border-[#E4ECE7] rounded-xl p-3 text-xs text-[#17201C] leading-relaxed line-clamp-4 whitespace-pre-wrap">

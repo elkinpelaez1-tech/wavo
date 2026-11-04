@@ -16,7 +16,7 @@ export class MessageWorker extends WorkerHost {
   }
 
   async process(job: Job) {
-    const { contactId, campaignId, phone, templateName, bodyVars, imageUrl } = job.data;
+    const { contactId, campaignId, phone, templateName, bodyVars, imageUrl, videoUrl, mediaUrl, mediaType } = job.data;
 
     try {
       this.logger.log(`[Worker] Procesando envío para: ${phone} (Campaña: ${campaignId})`);
@@ -27,11 +27,16 @@ export class MessageWorker extends WorkerHost {
       }
 
       // 1. Envío real a Meta
+      const finalMedia = videoUrl || mediaUrl || imageUrl;
+      const finalMediaType = mediaType || (videoUrl ? 'video' : 'image');
+
       const result = await this.meta.sendTemplate(
         phone,
         templateName,
         bodyVars,
-        imageUrl,
+        finalMedia,
+        'es',
+        finalMediaType,
       );
 
       const messageId = result?.messages?.[0]?.id;
